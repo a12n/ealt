@@ -1,0 +1,22 @@
+%% -*- mode: Erlang -*-
+
+{application, ealt,
+ [{description, "Server for easy access to Formula One live timing"},
+  {vsn, "%VSN%"},
+  {modules, [ealt_app,
+             ealt_auth,
+             ealt_decoder,
+             ealt_dispatcher,
+             ealt_event_manager,
+             ealt_extractor,
+             ealt_messages,
+             ealt_sup,
+             ealt_translator_0]},
+  {registered, [ealt_decoder,
+                ealt_dispatcher,
+                ealt_event_manager,
+                ealt_extractor,
+                ealt_sup]},
+  {applications, [inets, kernel, ssl, stdlib]},
+  {env, []},
+  {mod, {ealt_app, []}}]}.

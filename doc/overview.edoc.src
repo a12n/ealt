@@ -1,0 +1,30 @@
+@author Anton Yabchinskiy <arn@users.berlios.de>
+@copyright 2011, Anton Yabchinskiy
+@version %VSN%
+@title Easy Access to Formula One Live Timing
+@doc
+== Introduction ==
+
+EALT stands for Easy Access to Live Timing (or Erlang Access to Live Timing, or
+whatever). It is a Formula One live timing protocol translation server. It
+connects to official live timing server at <i>live-timing.formula1.com</i>,
+extracts and decrypts race event packets and makes this information available to
+the clients in local network in a way of simple human-readable and easy
+parseable protocol. Account on the Formula One website is required to access the
+live timing data.
+
+== Internal Protocol ==
+
+General message format described in {@link ealt_messages}. Revision 0 messages
+are described in {@link ealt_translator_0}. Documentation related to server of
+internal protocol is in {@link ealt_dispatcher}.
+
+Simple Python module for client development provided in the `sample' directory
+of distribution. Sample client applications (lap chart, weather monitor, etc.)
+is yet to be written.
+
+== External Protocol ==
+
+Some notes regarding external binary protocol could be found in {@link
+ealt_extractor}. Binary protocol description is available from Live-F1 project
+[http://launchpad.net/live-f1/].
