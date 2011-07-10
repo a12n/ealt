@@ -1,0 +1,12 @@
+%% -*- mode: Erlang -*-
+
+{release,
+ {"ealt", "%VSN%"},
+ {erts, "5.8"},
+ [{crypto, "2.0"},
+  {ealt, "%VSN%"},
+  {inets, "5.4"},
+  {kernel, "2.14"},
+  {public_key, "0.7"},
+  {ssl, "4.0"},
+  {stdlib, "1.17"}]}.
