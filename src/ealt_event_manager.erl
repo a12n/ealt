@@ -9,7 +9,7 @@
 
 %% API
 -export([add_handler/2, client_connected/1, delete_handler/2,
-         packet_extracted/1, start_link/0, stop/0]).
+         packet_extracted/1, start/0, start_link/0, stop/0]).
 
 -define(SERVER, ?MODULE). 
 
@@ -59,7 +59,17 @@ packet_extracted(Packet) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Creates event manager.
+%% Creates stand-alone event manager.
+%%
+%% @spec start_link() -> {ok, Pid :: pid()} | {error, Error :: term()}
+%% @end
+%%--------------------------------------------------------------------
+start() ->
+    gen_event:start({local, ?SERVER}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Creates event manager in a supervision tree.
 %%
 %% @spec start_link() -> {ok, Pid :: pid()} | {error, Error :: term()}
 %% @end
