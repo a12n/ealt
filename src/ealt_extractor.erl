@@ -37,7 +37,7 @@
 %% @doc
 %% Starts stand-alone packet extraction server.
 %%
-%% @spec start_link() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
+%% @spec start() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
 %% @end
 %%--------------------------------------------------------------------
 start() ->

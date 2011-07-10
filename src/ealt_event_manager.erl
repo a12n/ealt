@@ -61,7 +61,7 @@ packet_extracted(Packet) ->
 %% @doc
 %% Creates stand-alone event manager.
 %%
-%% @spec start_link() -> {ok, Pid :: pid()} | {error, Error :: term()}
+%% @spec start() -> {ok, Pid :: pid()} | {error, Error :: term()}
 %% @end
 %%--------------------------------------------------------------------
 start() ->
