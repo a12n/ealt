@@ -14,7 +14,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, stop/0]).
+-export([start_link/0, start/0, stop/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -35,7 +35,17 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts packet extraction server.
+%% Starts stand-alone packet extraction server.
+%%
+%% @spec start_link() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
+%% @end
+%%--------------------------------------------------------------------
+start() ->
+    gen_server:start({local, ?SERVER}, ?MODULE, [], []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Starts packet extraction server in supervision tree.
 %%
 %% @spec start_link() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
 %% @end
@@ -60,7 +70,7 @@ stop() ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Initializes the server
+%% Initializes the server.
 %%
 %% @spec init(Args) -> {ok, State} |
 %%                     {ok, State, Timeout} |
@@ -78,7 +88,7 @@ init([]) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Handling call messages
+%% Handling call messages.
 %%
 %% @spec handle_call(Request, From, State) ->
 %%                                   {reply, Reply, State} |
@@ -96,7 +106,7 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Handling cast messages
+%% Handling cast messages.
 %%
 %% @spec handle_cast(Msg, State) -> {noreply, State} |
 %%                                  {noreply, State, Timeout} |
@@ -112,7 +122,7 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Handling all non call/cast messages
+%% Handling all non call/cast messages.
 %%
 %% @spec handle_info(Info, State) -> {noreply, State} |
 %%                                   {noreply, State, Timeout} |
@@ -154,7 +164,7 @@ terminate(_Reason, _State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Convert process state when code is changed
+%% Convert process state when code is changed.
 %%
 %% @spec code_change(Old_Vsn, State, Extra) -> {ok, NewState}
 %% @end
