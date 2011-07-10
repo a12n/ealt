@@ -57,9 +57,7 @@ login(Email, Password) ->
 %% @doc
 %% Searches list of retrieved cookies for user's authentication cookie.
 %%
-%% @spec user_cookie() ->
-%%     {ok, Cookie :: string()} |
-%%     {error, Reason :: term()}
+%% @spec user_cookie() -> {ok, Value :: string()} | undefined
 %% @end
 %%--------------------------------------------------------------------
 user_cookie() ->
@@ -87,16 +85,15 @@ login_url() ->
 %% Searches "USER" cookie in every of cookie stores.
 %% 
 %% @spec search_cookie_stores(Cookie_Stores :: [cookie_stores()]) ->
-%%     {ok, Value :: string()} |
-%%     {error, Reason :: term()}
+%%     {ok, Value :: string()} | undefined
 %% @end
 %%--------------------------------------------------------------------
 search_cookie_stores([{cookies, Cookies} | Other]) ->
-    ?debugMsg("Searching in stored cookies..."),
+    ?debugMsg("Searching in cookies..."),
     case search_cookies(Cookies) of
         Result = {ok, _Value} ->
             Result;
-        {error, _Reason} ->
+        undefined ->
             search_cookie_stores(Other)
     end;
 search_cookie_stores([{session_cookies, Session_Cookies} | Other]) ->
@@ -104,30 +101,28 @@ search_cookie_stores([{session_cookies, Session_Cookies} | Other]) ->
     case search_cookies(Session_Cookies) of
         Result = {ok, _Value} ->
             Result;
-        {error, _Reason} ->
+        undefined ->
             search_cookie_stores(Other)
     end;
 search_cookie_stores([]) ->
-    {error, undefined}.
+    undefined.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
 %% Searches list of HTTP cookies for "USER" cookie of ".formula1.com" domain.
 %% 
-%% @spec search_cookies(Cookies :: [icookie()]) ->
-%%     {ok, Value :: string()} |
-%%     {error, Reason :: term()}
+%% @spec search_cookies(Cookies :: [icookie()]) -> {ok, Value :: string()} | undefined
 %% @end
 %%--------------------------------------------------------------------
 search_cookies([{http_cookie, ".formula1.com", _Domain_Default, "USER", Value,
-                 _Comment, _Max_Age, _Path, _Path_Default, _Secure, _Version} | _Other_Cookies]) ->
+                 _Comment, _Max_Age, _Path, _Path_Default, _Secure, _Version} | _Other]) ->
     ?debugFmt("User cookie found, value \"~s\"", [Value]),
     {ok, Value};
-search_cookies([_Cookie | Other_Cookies]) ->
-    search_cookies(Other_Cookies);
+search_cookies([_Cookie | Other]) ->
+    search_cookies(Other);
 search_cookies([]) ->
-    {error, undefined}.
+    undefined.
 
 %%--------------------------------------------------------------------
 %% @private
