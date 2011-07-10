@@ -7,12 +7,14 @@
 %%%-------------------------------------------------------------------
 -module(ealt_extractor).
 
+-include_lib("eunit/include/eunit.hrl").
+
 -include("ealt_macros.hrl").
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, stop/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -20,7 +22,12 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {buffer = <<>>, keyframe_id = undefined, socket}).
+-define(MIN_REFRESH_RATE, 1000).
+-define(MAX_REFRESH_RATE, 120000).
+
+-define(PING_PACKET, <<16>>).
+
+-record(state, {buffer = <<>>, keyframe_id = undefined, refresh_rate = ?MIN_REFRESH_RATE, socket}).
 
 %%%===================================================================
 %%% API
@@ -28,13 +35,23 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts the server
+%% Starts packet extraction server.
 %%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
+%% @spec start_link() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Stops packet extraction server.
+%%
+%% @spec stop() -> ok
+%% @end
+%%--------------------------------------------------------------------
+stop() ->
+    gen_server:cast(?SERVER, stop).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -52,7 +69,11 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
+    Options = [binary, {packet, 0}],
+    {ok, Socket} = gen_tcp:connect(?LIVE_TIMING_HOST, ?LIVE_TIMING_PORT, Options),
+    State = #state{socket = Socket},
+    Timeout = ?MIN_REFRESH_RATE,
+    {ok, State, Timeout}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -82,6 +103,9 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast(stop, State) ->
+    Reason = normal,
+    {stop, Reason, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -95,8 +119,23 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info({tcp, _Socket, Bytes}, State = #state{buffer = Buffer}) ->
+    Buffer_1 = <<Buffer/bytes, Bytes/bytes>>,
+    %% TODO: Do extract packets.
+    State_1 = State#state{buffer = Buffer_1},
+    Timeout = State_1#state.refresh_rate,
+    {noreply, State_1, Timeout};
+handle_info({Reason = tcp_closed, _Socket}, State) ->
+    error_logger:error_msg("Server closed connection"),
+    {stop, Reason, State};
+handle_info({tcp_error, Reason}, State) ->
+    error_logger:error_msg("Server connection error, reason \"~s\"", [Reason]),
+    {stop, Reason, State};
+handle_info(timeout, State = #state{refresh_rate = Refresh_Rate, socket = Socket}) ->
+    ?debugMsg("Sending ping packet"),
+    ok = gen_tcp:send(Socket, ?PING_PACKET),
+    Timeout = Refresh_Rate,
+    {noreply, State, Timeout}.
 
 %%--------------------------------------------------------------------
 %% @private
