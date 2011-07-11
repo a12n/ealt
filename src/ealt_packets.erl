@@ -59,6 +59,34 @@ convert_payload(#packet{car_id = 0,
                         payload = {false, Bytes}}) ->
     <<_Byte_1, Event_Id/bytes>> = Bytes,
     binary_to_list(Event_Id);
-convert_payload(_Packet = #packet{payload = {false, Bytes}}) ->
-    ?debugFmt("Couldn't convert payload of packet ~p.", [_Packet]),
-    Bytes.
+convert_payload(#packet{car_id = 0,
+                        type = ?SYSTEM_PACKET_COMMENTARY,
+                        payload = {false, Bytes}}) ->
+    <<Byte_1, _Bits:6, Charset_Bit:1, Flush_Bit:1, Other_Bytes/bytes>> = Bytes,
+    if Byte_1 >= 32 ->
+            {latin1, true, binary_to_list(Bytes)};
+       true ->
+            Charset =
+                case Charset_Bit of
+                    0 -> utf8;
+                    1 -> utf16le
+                end,
+            {Charset, Flush_Bit =:= 1, binary_to_list(Other_Bytes)}
+    end;
+convert_payload(#packet{car_id = 0,
+                        type = ?SYSTEM_PACKET_NOTICE,
+                        payload = {false, Bytes}}) ->
+    binary_to_list(Bytes);
+convert_payload(#packet{car_id = 0,
+                        type = ?SYSTEM_PACKET_TIMESTAMP,
+                        data = Data,
+                        payload = {false, Bytes}}) ->
+    <<Byte_1, Byte_2>> = Bytes,
+    (Data bsl 16) bor Byte_1 bor (Byte_2 bsl 8);
+convert_payload(#packet{car_id = 0,
+                        type = ?SYSTEM_PACKET_COPYRIGHT,
+                        payload = {false, Bytes}}) ->
+    binary_to_list(Bytes);
+convert_payload(_Packet = #packet{payload = Payload}) ->
+    ?debugFmt("Using defualt conversion for packet ~p.", [_Packet]),
+    Payload.
