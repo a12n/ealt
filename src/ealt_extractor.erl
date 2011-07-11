@@ -296,8 +296,10 @@ keyframe_url(Keyframe_Id) ->
 %% @end
 %%--------------------------------------------------------------------
 read_long_payload(Value, Bytes) ->
+    ?debugFmt("Long payload, value ~p, bytes ~P.",
+              [Value, Bytes, 128]),
     case Bytes of
-        <<Payload:Value/bytes, Other_Bytes>> ->
+        <<Payload:Value/bytes, Other_Bytes/bytes>> ->
             {ok, 0, Payload, Other_Bytes};
         _ ->
             {error, no_match}
@@ -366,6 +368,7 @@ read_packets(State = #state{buffer = Buffer}) ->
             State_2 = handle_special_packet(Packet, State_1),
             read_packets(State_2);
         {error, no_match} ->
+            ?debugMsg("No more packets in buffer."),
             State
     end.
 
@@ -421,6 +424,8 @@ read_payload_fun(Car_Id, Type) when Car_Id > 0, Type >= 1, Type =< 13 ->
 read_some_payload(Value, Bytes) ->
     Data = Value band 2#111,
     Length = Value bsr 3,
+    ?debugFmt("Some payload, value ~p (data ~p, length ~p), bytes ~P.",
+              [Value, Data, Length, Bytes, 128]),
     case Length of
         2#1111 ->
             {ok, Data, <<>>, Bytes};
@@ -445,4 +450,6 @@ read_some_payload(Value, Bytes) ->
 %% @end
 %%--------------------------------------------------------------------
 read_zero_payload(Value, Bytes) ->
+    ?debugFmt("Zero payload, value ~p, bytes ~P.",
+              [Value, Bytes, 128]),
     {ok, Value, <<>>, Bytes}.
