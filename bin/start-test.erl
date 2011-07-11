@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 %% -*- mode: erlang -*-
-%%! -pa ../ebin/
+%%! -pa ebin/
 
 main([Email, Password]) ->
     ok = inets:start(),
