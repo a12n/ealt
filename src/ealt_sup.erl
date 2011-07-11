@@ -62,6 +62,6 @@ init([]) ->
     %% External protocol extractor and decoder
     Decoder = {ealt_decoder, {ealt_decoder, start_link, []},
                permanent, 5000, worker, [ealt_decoder]},
-    _Extractor = {ealt_extractor, {ealt_extractor, start_link, []},
-                  permanent, 5000, worker, [ealt_extractor]},
-    {ok, {Sup_Flags, [Event_Manager, Dispatcher, Decoder]}}.
+    Extractor = {ealt_extractor, {ealt_extractor, start_link, []},
+                 permanent, 5000, worker, [ealt_extractor]},
+    {ok, {Sup_Flags, [Event_Manager, Dispatcher, Decoder, Extractor]}}.
