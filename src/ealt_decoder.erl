@@ -133,7 +133,7 @@ code_change(_Old_Vsn, State, _Extra) ->
 %% Retrieve encryption key for the specific <em>Event_Id</em>. Requires
 %% authentication <em>Cookie</em> as the second parameter.
 %%
-%% @spec key(Event_Id :: integer(), Cookie :: string()) ->
+%% @spec key(Event_Id :: string(), Cookie :: string()) ->
 %%     {ok, Key :: integer()} |
 %%     {error, Reason :: term()} |
 %%     {http_error, Reason :: term()}
@@ -151,14 +151,14 @@ key(Event_Id, Cookie) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% URL to retrieve event encryption key. Requires integer <em>Event_Id</em> and
+%% URL to retrieve event encryption key. Requires <em>Event_Id</em> and
 %% authentication <em>Cookie</em> as the parameters.
 %%
-%% @spec key_url(Event_Id :: integer(), Cookie :: string()) -> string()
+%% @spec key_url(Event_Id :: string(), Cookie :: string()) -> string()
 %% @end
 %%--------------------------------------------------------------------
 key_url(Event_Id, Cookie) ->
-    lists:flatten(io_lib:format("http://~s/reg/getkey/~B.asp?auth=~s",
+    lists:flatten(io_lib:format("http://~s/reg/getkey/~s.asp?auth=~s",
                                 [?LIVE_TIMING_HOST, Event_Id, Cookie])).
 
 %%--------------------------------------------------------------------
