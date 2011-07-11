@@ -375,7 +375,7 @@ read_packet(Car_Id, Type, Value, Bytes) ->
 %% @doc
 %% Extract packets from buffer while there are any.
 %%
-%% @spec extract_packets(State :: #state{}) -> State_1 :: #state{}
+%% @spec read_packets(State :: #state{}) -> State_1 :: #state{}
 %% @end
 %%--------------------------------------------------------------------
 read_packets(State = #state{buffer = Buffer}) ->
