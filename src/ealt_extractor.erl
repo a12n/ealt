@@ -204,6 +204,7 @@ handle_special_packet(#packet{car_id = 0,
                               payload = Payload},
                       State = #state{buffer = Buffer}) ->
     <<Keyframe_Id:16/little>> = Payload,
+    ?debugFmt("Keyframe packet with keyframe id ~p.", [Keyframe_Id]),
     case State#state.keyframe_id of
         undefined ->
             {ok, Bytes} = keyframe(Keyframe_Id),
@@ -297,7 +298,7 @@ keyframe_url(Keyframe_Id) ->
 %%--------------------------------------------------------------------
 read_long_payload(Value, Bytes) ->
     ?debugFmt("Long payload, value ~p, bytes ~P.",
-              [Value, Bytes, 128]),
+              [Value, Bytes, 64]),
     case Bytes of
         <<Payload:Value/bytes, Other_Bytes/bytes>> ->
             {ok, 0, Payload, Other_Bytes};
@@ -324,7 +325,9 @@ read_packet(_Bytes) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Extracts packet payload and constructs packet.
+%% Extracts packet payload and constructs packet. Timestamp system
+%% packet is a special one as it is a long packet with 2 bytes of
+%% payload despite of `value'.
 %%
 %% @spec read_packet(Car_Id :: non_neg_integer(),
 %%                   Type :: non_neg_integer(),
@@ -334,9 +337,25 @@ read_packet(_Bytes) ->
 %%     {error, no_match}
 %% @end
 %%--------------------------------------------------------------------
+read_packet(Car_Id = 0, Type = ?SYSTEM_PACKET_TIMESTAMP, Value, Bytes) ->
+    ?debugFmt("Reading timestamp packet, value ~p, bytes ~P.",
+              [Value, Bytes, 64]),
+    Encrypted = is_payload_encrypted(Car_Id, Type),
+    Read_Payload = read_payload_fun(Car_Id, Type),
+    case Read_Payload(2, Bytes) of
+        {ok, _Data, Payload, Other_Bytes} ->
+            Packet = #packet{car_id = Car_Id,
+                             type = Type,
+                             data = Value,
+                             payload = Payload,
+                             encrypted = Encrypted},
+            {ok, Packet, Other_Bytes};
+        Error = {error, _Reason} ->
+            Error
+    end;
 read_packet(Car_Id, Type, Value, Bytes) ->
     ?debugFmt("Reading packet, car id ~p, type ~p, value ~p, bytes ~P.",
-              [Car_Id, Type, Value, Bytes, 128]),
+              [Car_Id, Type, Value, Bytes, 64]),
     Encrypted = is_payload_encrypted(Car_Id, Type),
     Read_Payload = read_payload_fun(Car_Id, Type),
     case Read_Payload(Value, Bytes) of
@@ -425,7 +444,7 @@ read_some_payload(Value, Bytes) ->
     Data = Value band 2#111,
     Length = Value bsr 3,
     ?debugFmt("Some payload, value ~p (data ~p, length ~p), bytes ~P.",
-              [Value, Data, Length, Bytes, 128]),
+              [Value, Data, Length, Bytes, 64]),
     case Length of
         2#1111 ->
             {ok, Data, <<>>, Bytes};
@@ -451,5 +470,5 @@ read_some_payload(Value, Bytes) ->
 %%--------------------------------------------------------------------
 read_zero_payload(Value, Bytes) ->
     ?debugFmt("Zero payload, value ~p, bytes ~P.",
-              [Value, Bytes, 128]),
+              [Value, Bytes, 64]),
     {ok, Value, <<>>, Bytes}.
