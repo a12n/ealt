@@ -126,8 +126,10 @@ handle_call(_Request, _From, State) ->
 handle_cast({process_packet, Packet}, State) ->
     {Packet_1, State_1} = decrypt_packet(Packet, State),
     ?debugFmt("Packet ~p decrypted.", [Packet_1]),
-    State_2 = handle_special_packet(Packet_1, State_1),
-    ealt_event_manager:packet_extracted(Packet_1),
+    Packet_2 = ealt_packets:convert_packet(Packet_1),
+    ?debugFmt("Packet ~p converted.", [Packet_2]),
+    State_2 = handle_special_packet(Packet_2, State_1),
+    ealt_event_manager:packet_extracted(Packet_2),
     {noreply, State_2};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -238,10 +240,10 @@ decrypt_payload(Decrypted, <<Byte, Encrypted_1/bytes>>, Key, Mask) ->
 %%     State_1 :: #state{}
 %% @end
 %%--------------------------------------------------------------------
-handle_special_packet(Packet = #packet{car_id = 0,
-                                       type = ?SYSTEM_PACKET_EVENT_ID},
+handle_special_packet(#packet{car_id = 0,
+                              type = ?SYSTEM_PACKET_EVENT_ID,
+                              payload = Event_Id},
                       State) ->
-    Event_Id = ealt_packets:convert_payload(Packet),
     {ok, Cookie} = ealt_auth:user_cookie(),
     {ok, Key} = key(Event_Id, Cookie),
     ?debugFmt("Received key ~p.", [Key]),
