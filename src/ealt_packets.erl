@@ -49,6 +49,11 @@ convert_packet(Packet) ->
 %% @spec convert_payload(Packet :: #packet{}) -> term()
 %% @end
 %%--------------------------------------------------------------------
-convert_payload(#packet{payload = Payload}) ->
-    %% TODO
-    Payload.
+convert_payload(#packet{car_id = 0,
+                        type = ?SYSTEM_PACKET_KEYFRAME,
+                        payload = {false, Bytes}}) ->
+    <<Keyframe_Id:16/little>> = Bytes,
+    Keyframe_Id;
+convert_payload(_Packet = #packet{payload = {false, Bytes}}) ->
+    ?debugFmt("Couldn't convert payload of packet ~p.", [_Packet]),
+    Bytes.

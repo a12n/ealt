@@ -199,11 +199,10 @@ handle_special_packet(#packet{car_id = 0,
         end,
     ?debugFmt("Refresh rate set to ~p.", [Refresh_Rate]),
     State#state{refresh_rate = Refresh_Rate};
-handle_special_packet(#packet{car_id = 0,
-                              type = ?SYSTEM_PACKET_KEYFRAME,
-                              payload = {false, Payload}},
+handle_special_packet(Packet = #packet{car_id = 0,
+                                       type = ?SYSTEM_PACKET_KEYFRAME},
                       State = #state{buffer = Buffer}) ->
-    <<Keyframe_Id:16/little>> = Payload,
+    Keyframe_Id = ealt_packets:convert_payload(Packet),
     ?debugFmt("Keyframe packet with keyframe id ~p.", [Keyframe_Id]),
     case State#state.keyframe_id of
         undefined ->
