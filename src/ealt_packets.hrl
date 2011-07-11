@@ -1,9 +1,12 @@
 
-%% Car packet types
+-record(packet, {car_id = 0, type, data = 0, payload = <<>>, encrypted = false}).
+
+%% Car packet types.
 -define(CAR_PACKET_POSITION_UPDATE, 0).
+%% Types from 1 to 13 are update packets for live timing display columns.
 -define(CAR_PACKET_POSITION_HISTORY, 15).
 
-%% System packet types
+%% System packet types.
 -define(SYSTEM_PACKET_EVENT_ID, 1).
 -define(SYSTEM_PACKET_KEYFRAME, 2).
 -define(SYSTEM_PACKET_VALID_MARKER, 3).
