@@ -183,14 +183,14 @@ code_change(_Old_Vsn, State, _Extra) ->
 %%     {Packet_1 :: #packet{}, State_1 :: #state{}}
 %% @end
 %%--------------------------------------------------------------------
-decrypt_packet(Packet = #packet{payload = Payload, encrypted = true},
+decrypt_packet(Packet = #packet{payload = {true, Payload}},
                State = #state{key = Key, mask = Mask}) ->
     {Payload_1, Mask_1} = decrypt_payload(Payload, Key, Mask),
     ?debugFmt("Encrypted payload ~p (~p bytes), mask ~p.",
               [Payload, size(Payload), Mask]),
     ?debugFmt("Decrypted payload ~p (~p bytes), mask ~p.",
               [Payload_1, size(Payload_1), Mask_1]),
-    Packet_1 = Packet#packet{payload = Payload_1, encrypted = false},
+    Packet_1 = Packet#packet{payload = {false, Payload_1}},
     State_1 = State#state{mask = Mask_1},
     {Packet_1, State_1};
 decrypt_packet(Packet, State) ->
@@ -240,7 +240,7 @@ decrypt_payload(Decrypted, <<Byte, Encrypted_1/bytes>>, Key, Mask) ->
 %%--------------------------------------------------------------------
 handle_special_packet(#packet{car_id = 0,
                               type = ?SYSTEM_PACKET_EVENT_ID,
-                              payload = Payload},
+                              payload = {false, Payload}},
                       State) ->
     <<_Byte_1, Event_Id/bytes>> = Payload,
     {ok, Cookie} = ealt_auth:user_cookie(),

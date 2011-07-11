@@ -201,7 +201,7 @@ handle_special_packet(#packet{car_id = 0,
     State#state{refresh_rate = Refresh_Rate};
 handle_special_packet(#packet{car_id = 0,
                               type = ?SYSTEM_PACKET_KEYFRAME,
-                              payload = Payload},
+                              payload = {false, Payload}},
                       State = #state{buffer = Buffer}) ->
     <<Keyframe_Id:16/little>> = Payload,
     ?debugFmt("Keyframe packet with keyframe id ~p.", [Keyframe_Id]),
@@ -347,8 +347,7 @@ read_packet(Car_Id = 0, Type = ?SYSTEM_PACKET_TIMESTAMP, Value, Bytes) ->
             Packet = #packet{car_id = Car_Id,
                              type = Type,
                              data = Value,
-                             payload = Payload,
-                             encrypted = Encrypted},
+                             payload = {Encrypted, Payload}},
             {ok, Packet, Other_Bytes};
         Error = {error, _Reason} ->
             Error
@@ -363,8 +362,7 @@ read_packet(Car_Id, Type, Value, Bytes) ->
             Packet = #packet{car_id = Car_Id,
                              type = Type,
                              data = Data,
-                             payload = Payload,
-                             encrypted = Encrypted},
+                             payload = {Encrypted, Payload}},
             {ok, Packet, Other_Bytes};
         Error = {error, _Reason} ->
             Error

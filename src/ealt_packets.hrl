@@ -1,5 +1,5 @@
 
--record(packet, {car_id = 0, type, data = 0, payload = <<>>, encrypted = false}).
+-record(packet, {car_id = 0, type, data = 0, payload = undefined}).
 
 %% Car packet types.
 -define(CAR_PACKET_POSITION_UPDATE, 0).
