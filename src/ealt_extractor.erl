@@ -10,6 +10,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("ealt_macros.hrl").
+-include("ealt_packets.hrl").
 
 -behaviour(gen_server).
 
@@ -20,7 +21,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--define(SERVER, ?MODULE). 
+-define(SERVER, ?MODULE).
 
 -define(MIN_REFRESH_RATE, 1000).
 -define(MAX_REFRESH_RATE, 120000).
@@ -130,11 +131,10 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info({tcp, _Socket, Bytes}, State = #state{buffer = Buffer}) ->
-    Buffer_1 = <<Buffer/bytes, Bytes/bytes>>,
-    %% TODO: Do extract packets.
-    State_1 = State#state{buffer = Buffer_1},
-    Timeout = State_1#state.refresh_rate,
-    {noreply, State_1, Timeout};
+    State_1 = State#state{buffer = <<Buffer/bytes, Bytes/bytes>>},
+    State_2 = extract_packets(State_1),
+    Timeout = State_2#state.refresh_rate,
+    {noreply, State_2, Timeout};
 handle_info({Reason = tcp_closed, _Socket}, State) ->
     error_logger:error_msg("Server closed connection"),
     {stop, Reason, State};
@@ -179,6 +179,66 @@ code_change(_Old_Vsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
+%% Extract packets from buffer while there are any.
+%%
+%% @spec extract_packets(State :: #state{}) -> State_1 :: #state{}
+%% @end
+%%--------------------------------------------------------------------
+extract_packets(State = #state{buffer = Buffer}) ->
+    case ealt_packets:read_packet(Buffer) of
+        {ok, Packet, Buffer_1} ->
+            %% ealt_decoder:process_packet(Packet),
+            State_1 = State#state{buffer = Buffer_1},
+            State_2 = handle_special_packet(Packet, State_1),
+            extract_packets(State_2);
+        {error, no_match} ->
+            State
+    end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handles refresh rate and keyframe packets. Modifies <em>State</em>
+%% accordingly.
+%%
+%% @spec handle_special_packet(Packet :: #packet{}, State :: #state{}) ->
+%%     State_1 :: #state{}
+%% @end
+%%--------------------------------------------------------------------
+handle_special_packet(#packet{car_id = 0,
+                              type = ?SYSTEM_PACKET_REFRESH_RATE,
+                              data = Seconds},
+                      State) ->
+    Refresh_Rate =
+        case (Seconds * 1000) of
+            0 -> ?MAX_REFRESH_RATE;
+            N when N < ?MIN_REFRESH_RATE -> ?MIN_REFRESH_RATE;
+            N when N > ?MAX_REFRESH_RATE -> ?MAX_REFRESH_RATE;
+            N -> N
+        end,
+    ?debugFmt("Refresh rate set to ~p.", [Refresh_Rate]),
+    State#state{refresh_rate = Refresh_Rate};
+handle_special_packet(#packet{car_id = 0,
+                              type = ?SYSTEM_PACKET_KEYFRAME,
+                              payload = Payload},
+                      State = #state{buffer = Buffer}) ->
+    <<Keyframe_Id:16/little>> = Payload,
+    case State#state.keyframe_id of
+        undefined ->
+            {ok, Bytes} = keyframe(Keyframe_Id),
+            ?debugFmt("Injecting ~p bytes of data from keyframe ~p.",
+                      [size(Bytes), Keyframe_Id]),
+            State#state{keyframe_id = Keyframe_Id,
+                        buffer = <<Bytes/bytes, Buffer/bytes>>};
+        _Id ->
+            State#state{keyframe_id = Keyframe_Id}
+    end;
+handle_special_packet(_Packet, State) ->
+    State.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
 %% Retrieve packet keyframe of specified id. Parameter is a non negative integer
 %% <em>Keyframe_Id</em> extracted from keyframe packet.
 %%
@@ -189,6 +249,7 @@ code_change(_Old_Vsn, State, _Extra) ->
 %% @end
 %%--------------------------------------------------------------------
 keyframe(Keyframe_Id) ->
+    ?debugFmt("Receiving keyframe ~p.", [Keyframe_Id]),
     Headers = [],
     HTTP_Options = [],
     Options = [{body_format, binary}],
