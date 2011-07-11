@@ -382,9 +382,9 @@ read_packets(State = #state{buffer = Buffer}) ->
     case read_packet(Buffer) of
         {ok, Packet, Buffer_1} ->
             ?debugFmt("Packet ~p extracted.", [Packet]),
-            %% ealt_decoder:process_packet(Packet),
             State_1 = State#state{buffer = Buffer_1},
             State_2 = handle_special_packet(Packet, State_1),
+            ealt_decoder:process_packet(Packet),
             read_packets(State_2);
         {error, no_match} ->
             ?debugMsg("No more packets in buffer."),
