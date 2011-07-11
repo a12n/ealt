@@ -187,6 +187,7 @@ code_change(_Old_Vsn, State, _Extra) ->
 extract_packets(State = #state{buffer = Buffer}) ->
     case ealt_packets:read_packet(Buffer) of
         {ok, Packet, Buffer_1} ->
+            ?debugFmt("Packet ~p extracted.", [Packet]),
             %% ealt_decoder:process_packet(Packet),
             State_1 = State#state{buffer = Buffer_1},
             State_2 = handle_special_packet(Packet, State_1),
