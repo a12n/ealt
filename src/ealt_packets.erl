@@ -54,6 +54,11 @@ convert_payload(#packet{car_id = 0,
                         payload = {false, Bytes}}) ->
     <<Keyframe_Id:16/little>> = Bytes,
     Keyframe_Id;
+convert_payload(#packet{car_id = 0,
+                        type = ?SYSTEM_PACKET_EVENT_ID,
+                        payload = {false, Bytes}}) ->
+    <<_Byte_1, Event_Id/bytes>> = Bytes,
+    binary_to_list(Event_Id);
 convert_payload(_Packet = #packet{payload = {false, Bytes}}) ->
     ?debugFmt("Couldn't convert payload of packet ~p.", [_Packet]),
     Bytes.
