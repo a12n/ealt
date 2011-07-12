@@ -39,7 +39,7 @@ convert_packet(#packet{car_id = 0,
                 race
         end,
     <<_Unknown, Event_Id/bytes>> = Bytes,
-    {event_id, Session, binary_to_list(Event_Id)};
+    {event_id, {Session, binary_to_list(Event_Id)}};
 convert_packet(#packet{car_id = 0,
                        type = ?SYSTEM_PACKET_KEYFRAME,
                        payload = {false, Bytes}}) ->
@@ -54,14 +54,14 @@ convert_packet(#packet{car_id = 0,
                        payload = {false, Bytes}}) ->
     <<Byte_1, _Bits:6, Charset_Bit:1, Flush_Bit:1, Other_Bytes/bytes>> = Bytes,
     if Byte_1 >= 32 ->
-            {commentary, latin1, true, binary_to_list(Bytes)};
+            {commentary, {latin1, true, binary_to_list(Bytes)}};
        true ->
             Charset =
                 case Charset_Bit of
                     0 -> utf8;
                     1 -> utf16le
                 end,
-            {commentary, Charset, Flush_Bit =:= 1, binary_to_list(Other_Bytes)}
+            {commentary, {Charset, Flush_Bit =:= 1, binary_to_list(Other_Bytes)}}
     end;
 convert_packet(#packet{car_id = 0,
                        type = ?SYSTEM_PACKET_REFRESH_RATE,
@@ -124,11 +124,11 @@ convert_packet(#packet{car_id = 0,
     <<Sub_Type, Other_Bytes/bytes>> = Bytes,
     case Sub_Type of
         ?SPEED_PACKET_SECTOR_1 ->
-            {speed_sector_1, convert_speed_list(Other_Bytes)};
+            {sector_1_speed, convert_speed_list(Other_Bytes)};
         ?SPEED_PACKET_SECTOR_2 ->
-            {speed_sector_2, convert_speed_list(Other_Bytes)};
+            {sector_2_speed, convert_speed_list(Other_Bytes)};
         ?SPEED_PACKET_SECTOR_3 ->
-            {speed_sector_3, convert_speed_list(Other_Bytes)};
+            {sector_3_speed, convert_speed_list(Other_Bytes)};
         ?SPEED_PACKET_SPEED_TRAP ->
             {speed_trap, convert_speed_list(Other_Bytes)};
         ?SPEED_PACKET_FASTEST_LAP_CAR ->
@@ -146,15 +146,15 @@ convert_packet(#packet{car_id = 0,
                        payload = {false, Bytes}}) ->
     case convert_integer(Bytes) of
         ?FLAG_GREEN ->
-            green_flag;
+            {green_flag, undefined};
         ?FLAG_YELLOW ->
-            yellow_flag;
+            {yellow_flag, undefined};
         ?FLAG_SCS ->
-            scs;
+            {scs, undefined};
         ?FLAG_SCD ->
-            scd;
+            {scd, undefined};
         ?FLAG_RED ->
-            red_flag
+            {red_flag, undefined}
     end;
 convert_packet(#packet{car_id = 0,
                        type = ?SYSTEM_PACKET_COPYRIGHT,
@@ -163,11 +163,11 @@ convert_packet(#packet{car_id = 0,
 convert_packet(#packet{car_id = Car_Id,
                        type = ?CAR_PACKET_POSITION_UPDATE,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {position_update, Car_Id, convert_integer(Bytes)};
+    {position_update, {Car_Id, convert_integer(Bytes)}};
 convert_packet(#packet{car_id = Car_Id,
                        type = ?CAR_PACKET_POSITION_HISTORY,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {position_history, Car_Id, binary_to_list(Bytes)};
+    {position_history, {Car_Id, binary_to_list(Bytes)}};
 convert_packet(Packet) ->
     ?debugFmt("No convertion for packet ~p defined.", [Packet]),
     Packet.
@@ -191,47 +191,47 @@ convert_packet(practice,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_PRACTICE_POSITION,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, position}, Car_Id, convert_integer(Bytes)};
+    {position, {Car_Id, convert_integer(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_PRACTICE_NUMBER,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, number}, Car_Id, convert_integer(Bytes)};
+    {number, {Car_Id, convert_integer(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_PRACTICE_DRIVER,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, driver}, Car_Id, binary_to_list(Bytes)};
+    {driver, {Car_Id, binary_to_list(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_PRACTICE_BEST,
+                       type = ?CAR_PACKET_PRACTICE_BEST_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, best}, Car_Id, convert_time(Bytes)};
+    {best_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_PRACTICE_GAP,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, gap}, Car_Id, convert_gap(Bytes)};
+    {gap, {Car_Id, convert_gap(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_PRACTICE_SECTOR_1,
+                       type = ?CAR_PACKET_PRACTICE_SECTOR_1_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, sector_1}, Car_Id, convert_time(Bytes)};
+    {sector_1_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_PRACTICE_SECTOR_2,
+                       type = ?CAR_PACKET_PRACTICE_SECTOR_2_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, sector_2}, Car_Id, convert_time(Bytes)};
+    {sector_2_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_PRACTICE_SECTOR_3,
+                       type = ?CAR_PACKET_PRACTICE_SECTOR_3_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, sector_3}, Car_Id, convert_time(Bytes)};
+    {sector_3_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(practice,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_PRACTICE_LAP,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{practice, lap}, Car_Id, convert_integer(Bytes)};
+    {lap, {Car_Id, convert_integer(Bytes)}};
 %%
 %% Qualifying packets.
 %%
@@ -239,55 +239,55 @@ convert_packet(qualifying,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_QUALIFYING_POSITION,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{qualifying, position}, Car_Id, convert_integer(Bytes)};
+    {position, {Car_Id, convert_integer(Bytes)}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_QUALIFYING_NUMBER,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{qualifying, number}, Car_Id, convert_integer(Bytes)};
+    {number, {Car_Id, convert_integer(Bytes)}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_QUALIFYING_DRIVER,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{qualifying, driver}, Car_Id, binary_to_list(Bytes)};
+    {driver, {Car_Id, binary_to_list(Bytes)}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_QUALIFYING_PERIOD_1,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    %% FIXME
-    {{qualifying, period_1}, Car_Id, Bytes};
+    %% FIXME: What is period 1?
+    {period_1, {Car_Id, Bytes}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_QUALIFYING_PERIOD_2,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    %% FIXME
-    {{qualifying, period_2}, Car_Id, Bytes};
+    %% FIXME: What is period 2?
+    {period_2, {Car_Id, Bytes}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_QUALIFYING_PERIOD_3,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    %% FIXME
-    {{qualifying, period_3}, Car_Id, Bytes};
+    %% FIXME: What is period 3?
+    {period_3, {Car_Id, Bytes}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_QUALIFYING_SECTOR_1,
+                       type = ?CAR_PACKET_QUALIFYING_SECTOR_1_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{qualifying, sector_1}, Car_Id, convert_time(Bytes)};
+    {sector_1_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_QUALIFYING_SECTOR_2,
+                       type = ?CAR_PACKET_QUALIFYING_SECTOR_2_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{qualifying, sector_2}, Car_Id, convert_time(Bytes)};
+    {sector_2_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_QUALIFYING_SECTOR_3,
+                       type = ?CAR_PACKET_QUALIFYING_SECTOR_3_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{qualifying, sector_3}, Car_Id, convert_time(Bytes)};
+    {sector_3_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(qualifying,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_QUALIFYING_LAP,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{qualifying, lap}, Car_Id, convert_integer(Bytes)};
+    {lap, {Car_Id, convert_integer(Bytes)}};
 %%
 %% Race packets.
 %%
@@ -295,71 +295,71 @@ convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_POSITION,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, position}, Car_Id, convert_integer(Bytes)};
+    {position, {Car_Id, convert_integer(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_NUMBER,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, number}, Car_Id, convert_integer(Bytes)};
+    {number, {Car_Id, convert_integer(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_DRIVER,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, driver}, Car_Id, binary_to_list(Bytes)};
+    {driver, {Car_Id, binary_to_list(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_GAP,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, gap}, Car_Id, convert_gap(Bytes)};
+    {gap, {Car_Id, convert_gap(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_INTERVAL,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    %% FIXME
-    {{race, interval}, Car_Id, Bytes};
+    %% FIXME: What is interval?
+    {interval, {Car_Id, Bytes}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_LAP_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, lap_time}, Car_Id, convert_time(Bytes)};
+    {lap_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_RACE_SECTOR_1,
+                       type = ?CAR_PACKET_RACE_SECTOR_1_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, sector_1}, Car_Id, convert_time(Bytes)};
+    {sector_1_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_PIT_LAP_1,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    %% FIXME
-    {{race, pit_lap_1}, Car_Id, Bytes};
+    %% FIXME: What is pit lap 1?
+    {pit_lap_1, {Car_Id, Bytes}};
 convert_packet(race,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_RACE_SECTOR_2,
+                       type = ?CAR_PACKET_RACE_SECTOR_2_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, sector_2}, Car_Id, convert_time(Bytes)};
+    {sector_2_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_PIT_LAP_2,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    %% FIXME
-    {{race, pit_lap_2}, Car_Id, Bytes};
+    %% FIXME: What is pit lap 2?
+    {pit_lap_2, {Car_Id, Bytes}};
 convert_packet(race,
                #packet{car_id = Car_Id,
-                       type = ?CAR_PACKET_RACE_SECTOR_3,
+                       type = ?CAR_PACKET_RACE_SECTOR_3_TIME,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, sector_3}, Car_Id, convert_time(Bytes)};
+    {sector_3_time, {Car_Id, convert_time(Bytes)}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_PIT_LAP_3,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    %% FIXME
-    {{race, pit_lap_3}, Car_Id, Bytes};
+    %% FIXME: What is pit lap 3?
+    {pit_lap_3, {Car_Id, Bytes}};
 convert_packet(race,
                #packet{car_id = Car_Id,
                        type = ?CAR_PACKET_RACE_NUM_PITS,
                        payload = {false, Bytes}}) when Car_Id > 0 ->
-    {{race, num_pits}, Car_Id, convert_integer(Bytes)};
+    {num_pits, {Car_Id, convert_integer(Bytes)}};
 convert_packet(_Session, Packet) ->
     convert_packet(Packet).
 

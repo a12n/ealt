@@ -80,12 +80,12 @@ handle_event({client_connected, Client}, State) ->
     ealt_dispatcher:dispatch(Client, ealt_messages:format(hello, 0, undefined)),
     {ok, State};
 handle_event({packet_extracted, Packet}, State) ->
-    case translate_packet(Packet, State) of
-        {ok, Tag, Content, State_1} ->
+    case Packet of
+        {Tag, Content} ->
             ealt_dispatcher:dispatch(ealt_messages:format(Tag, 0, Content)),
-            {ok, State_1};
-        {no_message, State_1} ->
-            {ok, State_1}
+            {ok, State};
+        _ ->
+            {ok, State}
     end;
 handle_event(_Event, State) ->
     {ok, State}.
@@ -149,19 +149,6 @@ code_change(_Old_Vsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% TODO
-%%
-%% @spec translate_packet(Packet :: term(), State :: #state{}) ->
-%%     {ok, Tag :: atom(), Content :: term(), State_1 :: #state{}} |
-%%     {no_message, State_1 :: #state{}}
-%% @end
-%%--------------------------------------------------------------------
-translate_packet(_Packet, State) ->
-    {no_message, State}.
 
 %% translate_packet(#packet{car = 0, type = ?SYSTEM_PACKET_COMMENTARY, payload = Payload}, State = #state{commentary_buffer = Commentary_Buffer}) ->
 %%     <<_Byte_1, _Byte_2:7, Flush_Bit, Text/bytes>> = Payload,
