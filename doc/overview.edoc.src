@@ -8,10 +8,9 @@
 EALT stands for Easy Access to Live Timing (or Erlang Access to Live Timing, or
 whatever). It is a Formula One live timing protocol translation server. It
 connects to official live timing server at <i>live-timing.formula1.com</i>,
-extracts and decrypts race event packets and makes this information available to
-the clients in local network in a way of simple human-readable and easy
-parseable protocol. Account on the Formula One website is required to access the
-live timing data.
+extracts and decrypts race event packets and makes data available to the clients
+in local network in a way of simple text-based protocol. Account on the Formula
+One website is required to access the live timing data.
 
 == Internal Protocol ==
 
