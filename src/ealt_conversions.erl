@@ -26,8 +26,8 @@
 %% @end
 %%--------------------------------------------------------------------
 convert_packet(#packet{car_id = 0,
-                       data = Data,
                        type = ?SYSTEM_PACKET_EVENT_ID,
+                       data = Data,
                        payload = {false, Bytes}}) ->
     Session =
         case Data of
@@ -46,8 +46,8 @@ convert_packet(#packet{car_id = 0,
     <<Keyframe_Id:16/little>> = Bytes,
     {keyframe, Keyframe_Id};
 convert_packet(#packet{car_id = 0,
-                       data = Data,
-                       type = ?SYSTEM_PACKET_VALID_MARKER}) ->
+                       type = ?SYSTEM_PACKET_VALID_MARKER,
+                       data = Data}) ->
     {valid_marker, Data =:= 1};
 convert_packet(#packet{car_id = 0,
                        type = ?SYSTEM_PACKET_COMMENTARY,
@@ -64,23 +64,98 @@ convert_packet(#packet{car_id = 0,
             {commentary, Charset, Flush_Bit =:= 1, binary_to_list(Other_Bytes)}
     end;
 convert_packet(#packet{car_id = 0,
-                       data = Data,
-                       type = ?SYSTEM_PACKET_REFRESH_RATE}) ->
+                       type = ?SYSTEM_PACKET_REFRESH_RATE,
+                       data = Data}) ->
     {refresh_rate, Data};
 convert_packet(#packet{car_id = 0,
                        type = ?SYSTEM_PACKET_NOTICE,
                        payload = {false, Bytes}}) ->
     {notice, binary_to_list(Bytes)};
 convert_packet(#packet{car_id = 0,
-                       data = Data,
                        type = ?SYSTEM_PACKET_TIMESTAMP,
+                       data = Data,
                        payload = {false, Bytes}}) ->
     <<Byte_1, Byte_2>> = Bytes,
     Seconds = (Data bsl 16) bor Byte_1 bor (Byte_2 bsl 8),
     {timestamp, Seconds};
-%% TODO: weather
-%% TODO: speed
-%% TODO: track_status
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_SESSION_CLOCK,
+                       payload = {false, Bytes}}) ->
+    {session_clock, convert_time(Bytes)};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_TRACK_TEMP,
+                       payload = {false, Bytes}}) ->
+    {track_temp, convert_integer(Bytes)};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_AIR_TEMP,
+                       payload = {false, Bytes}}) ->
+    {air_temp, convert_integer(Bytes)};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_WET_TRACK,
+                       payload = {false, Bytes}}) ->
+    {wet_track, convert_integer(Bytes) =:= 1};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_WIND_SPEED,
+                       payload = {false, Bytes}}) ->
+    {wind_speed, convert_float(Bytes)};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_HUMIDITY,
+                       payload = {false, Bytes}}) ->
+    {humidity, convert_integer(Bytes)};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_PRESSURE,
+                       payload = {false, Bytes}}) ->
+    {pressure, convert_float(Bytes)};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_WEATHER,
+                       data = ?WEATHER_PACKET_WIND_DIRECTION,
+                       payload = {false, Bytes}}) ->
+    {wind_direction, convert_integer(Bytes)};
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_SPEED,
+                       payload = {false, Bytes}}) ->
+    <<Sub_Type, Other_Bytes/bytes>> = Bytes,
+    case Sub_Type of
+        ?SPEED_PACKET_SECTOR_1 ->
+            {speed_sector_1, convert_speed_list(Other_Bytes)};
+        ?SPEED_PACKET_SECTOR_2 ->
+            {speed_sector_2, convert_speed_list(Other_Bytes)};
+        ?SPEED_PACKET_SECTOR_3 ->
+            {speed_sector_3, convert_speed_list(Other_Bytes)};
+        ?SPEED_PACKET_SPEED_TRAP ->
+            {speed_trap, convert_speed_list(Other_Bytes)};
+        ?SPEED_PACKET_FASTEST_LAP_CAR ->
+            {fastest_lap_car, convert_integer(Other_Bytes)};
+        ?SPEED_PACKET_FASTEST_LAP_DRIVER ->
+            {fastest_lap_driver, binary_to_list(Other_Bytes)};
+        ?SPEED_PACKET_FASTEST_LAP_TIME ->
+            {fastest_lap_time, convert_time(Other_Bytes)};
+        ?SPEED_PACKET_FASTEST_LAP_LAP ->
+            {fastest_lap, convert_integer(Other_Bytes)}
+    end;
+convert_packet(#packet{car_id = 0,
+                       type = ?SYSTEM_PACKET_TRACK_STATUS,
+                       data = ?TRACK_STATUS_PACKET_FLAG,
+                       payload = {false, Bytes}}) ->
+    case convert_integer(Bytes) of
+        ?FLAG_GREEN ->
+            green_flag;
+        ?FLAG_YELLOW ->
+            yellow_flag;
+        ?FLAG_SCS ->
+            scs;
+        ?FLAG_SCD ->
+            scd;
+        ?FLAG_RED ->
+            red_flag
+    end;
 convert_packet(#packet{car_id = 0,
                        type = ?SYSTEM_PACKET_COPYRIGHT,
                        payload = {false, Bytes}}) ->
@@ -317,6 +392,27 @@ convert_integer(<<>>) ->
     undefined;
 convert_integer(Bytes) ->
     list_to_integer(binary_to_list(Bytes)).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+convert_float(<<>>) ->
+    undefined;
+convert_float(Bytes) ->
+    list_to_float(binary_to_list(Bytes)).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+convert_speed_list(Bytes) ->
+    List_1 = binary_to_list(Bytes),
+    List_2 = string:tokens(List_1, [$\r]),
+    List_3 = ealt_utils:zip1(List_2),
+    lists:map(fun({Driver, Speed}) -> {Driver, list_to_integer(Speed)} end, List_3).
 
 %%--------------------------------------------------------------------
 %% @doc
