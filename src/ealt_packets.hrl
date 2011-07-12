@@ -1,5 +1,5 @@
 
--record(packet, {car_id = 0, type, data = 0, payload = undefined}).
+-record(packet, {car_id = 0, type, data = 0, payload}).
 
 %% Car packet types.
 -define(CAR_PACKET_POSITION_UPDATE, 0).
@@ -16,7 +16,7 @@
 -define(CAR_PACKET_RACE_PIT_LAP_2, 10).
 -define(CAR_PACKET_RACE_SECTOR_3, 11).
 -define(CAR_PACKET_RACE_PIT_LAP_3, 12).
--define(CAR_PACKET_RACE_NUM_PITS, 1).
+-define(CAR_PACKET_RACE_NUM_PITS, 13).
 -define(CAR_PACKET_PRACTICE_POSITION, 1).
 -define(CAR_PACKET_PRACTICE_NUMBER, 2).
 -define(CAR_PACKET_PRACTICE_DRIVER, 3).
