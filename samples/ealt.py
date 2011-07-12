@@ -42,6 +42,8 @@ class Matcher(object):
             content = result.group("content")
             for callback in self.__callbacks.get(tag, {}).get(vsn, []):
                 callback(timestamp, content)
+            for callback in self.__callbacks.get("*", {}).get("*", []):
+                callback(tag, vsn, timestamp, content)
 
     @staticmethod
     def __convert_timestamp(megaseconds, seconds, microseconds):
