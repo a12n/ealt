@@ -22,7 +22,7 @@
 %% @doc
 %% Convert packet's payload to Erlang term.
 %%
-%% @spec convert_payload(Packet :: #packet{}) -> term()
+%% @spec convert_packet(Packet :: #packet{}) -> term()
 %% @end
 %%--------------------------------------------------------------------
 convert_packet(#packet{car_id = 0,
@@ -175,10 +175,10 @@ convert_packet(Packet) ->
 %%--------------------------------------------------------------------
 %% @doc
 %% Convert packet's payload to Erlang term. Car packet payload is
-%% different for practice, qualifying and race sessions. <em>Session<em>
+%% different for practice, qualifying and race sessions. <em>Session</em>
 %% parameter required to differentiate.
 %%
-%% @spec convert_payload(Session, Packet :: #packet{}) -> term()
+%% @spec convert_packet(Session, Packet :: #packet{}) -> term()
 %% where
 %% Session = practice | qualifying | race
 %% @end
@@ -369,7 +369,14 @@ convert_packet(_Session, Packet) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% @spec
+%% Convert payload bytes to gap.
+%%
+%% @spec convert_gap(Bytes :: binary()) ->
+%%     undefined |
+%%     {laps, integer()} |
+%%     {time, Time}
+%% where
+%% Time = {Mins :: integer(), Secs :: integer(), Millisecs :: integer()}
 %% @end
 %%--------------------------------------------------------------------
 convert_gap(<<>>) ->
@@ -385,7 +392,9 @@ convert_gap(Bytes) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% @spec
+%% Convert payload bytes to integer.
+%%
+%% @spec convert_integer(Bytes :: binary()) -> undefined | integer()
 %% @end
 %%--------------------------------------------------------------------
 convert_integer(<<>>) ->
@@ -395,7 +404,9 @@ convert_integer(Bytes) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% @spec
+%% Convert payload bytes to float.
+%%
+%% @spec convert_float(Bytes :: binary()) -> undefined | float()
 %% @end
 %%--------------------------------------------------------------------
 convert_float(<<>>) ->
@@ -405,7 +416,9 @@ convert_float(Bytes) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% @spec
+%% Convert speed packet payload to list of driver-speed pairs.
+%%
+%% @spec convert_speed_list(Bytes :: binary()) -> [{Driver :: string(), Speed :: integer()}]
 %% @end
 %%--------------------------------------------------------------------
 convert_speed_list(Bytes) ->
@@ -416,7 +429,14 @@ convert_speed_list(Bytes) ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% @spec
+%% Convert time payload to internal representation. If there was no time set by
+%% driver, `retired', `stop' or `undefined' atoms could be returned.
+%%
+%% @spec convert_time(Bytes :: binary()) ->
+%%     undefined |
+%%     retired |
+%%     stop |
+%%     {Mins :: integer(), Secs :: integer(), Millisecs :: integer()}
 %% @end
 %%--------------------------------------------------------------------
 convert_time(<<>>) ->
