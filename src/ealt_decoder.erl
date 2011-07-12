@@ -25,7 +25,7 @@
 
 -define(INITIAL_MASK, 16#55555555).
 
--record(state, {key = 0, mask = ?INITIAL_MASK}).
+-record(state, {key = 0, mask = ?INITIAL_MASK, session}).
 
 %%%===================================================================
 %%% API
@@ -123,10 +123,11 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({process_packet, Packet}, State) ->
+handle_cast({process_packet, Packet},
+            State = #state{session = Session}) ->
     {Packet_1, State_1} = decrypt_packet(Packet, State),
     ?debugFmt("Packet ~p decrypted.", [Packet_1]),
-    Packet_2 = ealt_packets:convert_packet(Packet_1),
+    Packet_2 = ealt_conversions:convert_packet(Session, Packet_1),
     ?debugFmt("Packet ~p converted.", [Packet_2]),
     State_2 = handle_special_packet(Packet_2, State_1),
     ealt_event_manager:packet_extracted(Packet_2),
@@ -234,20 +235,18 @@ decrypt_payload(Decrypted, <<Byte, Encrypted_1/bytes>>, Key, Mask) ->
 %% @private
 %% @doc
 %% Handles event id packet. Retrieves appropriate key and updates
-%% <em>State</em>.
+%% <em>State</em>. This function expects packets converted to internal
+%% representation.
 %%
-%% @spec handle_special_packet(Packet :: #packet{}, State :: #state{}) ->
+%% @spec handle_special_packet(Packet :: term(), State :: #state{}) ->
 %%     State_1 :: #state{}
 %% @end
 %%--------------------------------------------------------------------
-handle_special_packet(#packet{car_id = 0,
-                              type = ?SYSTEM_PACKET_EVENT_ID,
-                              payload = Event_Id},
-                      State) ->
+handle_special_packet({event_id, Session, Event_Id}, State) ->
     {ok, Cookie} = ealt_auth:user_cookie(),
     {ok, Key} = key(Event_Id, Cookie),
     ?debugFmt("Received key ~p.", [Key]),
-    State#state{key = Key, mask = ?INITIAL_MASK};
+    State#state{key = Key, mask = ?INITIAL_MASK, session = Session};
 handle_special_packet(_Packet, State) ->
     State.
 

@@ -202,7 +202,7 @@ handle_special_packet(#packet{car_id = 0,
 handle_special_packet(Packet = #packet{car_id = 0,
                                        type = ?SYSTEM_PACKET_KEYFRAME},
                       State = #state{buffer = Buffer}) ->
-    Keyframe_Id = ealt_packets:convert_payload(Packet),
+    {keyframe, Keyframe_Id} = ealt_conversions:convert_packet(Packet),
     ?debugFmt("Keyframe packet with keyframe id ~p.", [Keyframe_Id]),
     case State#state.keyframe_id of
         undefined ->
