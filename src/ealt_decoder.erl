@@ -242,7 +242,7 @@ decrypt_payload(Decrypted, <<Byte, Encrypted_1/bytes>>, Key, Mask) ->
 %%     State_1 :: #state{}
 %% @end
 %%--------------------------------------------------------------------
-handle_special_packet({event_id, Session, Event_Id}, State) ->
+handle_special_packet({event_id, {Session, Event_Id}}, State) ->
     {ok, Cookie} = ealt_auth:user_cookie(),
     {ok, Key} = key(Event_Id, Cookie),
     ?debugFmt("Received key ~p.", [Key]),
