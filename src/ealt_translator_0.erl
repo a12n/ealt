@@ -2,7 +2,8 @@
 %%% @author Anton Yabchinskiy <arn@users.berlios.de>
 %%% @copyright 2011, Anton Yabchinskiy
 %%% @doc
-%%% Internal protocol revision 0 translations.
+%%% Internal protocol revision 0 translations. Just sends internal
+%%% representation of packets.
 %%% @end
 %%%-------------------------------------------------------------------
 -module(ealt_translator_0).
