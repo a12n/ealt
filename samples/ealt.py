@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import select
 import socket
 
 
@@ -61,6 +62,7 @@ class Client(object):
         object.__init__(self)
         self.__socket = None
         self.__stream = None
+        self.__stream_iter = None
         self.matcher = Matcher()
 
     def close(self):
@@ -69,6 +71,7 @@ class Client(object):
         self.__socket.close()
         self.__socket = None
         self.__stream = None
+        self.__stream_iter = None
 
     def connect(self, endpoint):
         """Connects to the server on specified endpoint.
@@ -77,16 +80,27 @@ class Client(object):
         - `endpoint`: Pair (tuple of two elements) of hostname and port.
         """
         self.__socket = socket.create_connection(endpoint)
+        self.__socket.setblocking(0)
         self.__stream = self.__socket.makefile()
+        self.__stream_iter = iter(self.__stream)
 
     def run(self):
         """Receives messages from server line by line, parses them and calls
         back appropriate handlers if there is any. Blocks if there is no data
         from server right away.
         """
-        for line in self.__stream:
-            self.matcher.match(line)
+        while True:
+            select.select([self.__socket], [], [])
+            self.run_once()
 
+    def run_once(self):
+        """Tries to receive a message from server. Returns immediately
+        if there is no data available.
+        """
+        try:
+            self.matcher.match(next(self.__stream_iter))
+        except socket.error, err:
+            pass
 
 if __name__ == "__main__":
     def on_air_temp(timestamp, content):
