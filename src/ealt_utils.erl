@@ -26,22 +26,7 @@
 %% @spec zip1(List :: list()) -> [{term(), term()}]
 %% @end
 %%--------------------------------------------------------------------
-zip1(List) ->
-    zip1([], List).
-
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%% "Zips" list of items into list of two-tuples. Resulting list is accumulated
-%% into the first parameter. Length of input list must be even.
-%%
-%% @spec zip1(Result :: list(), List :: list()) -> [{term(), term()}]
-%% @end
-%%--------------------------------------------------------------------
-zip1(Result, [Item_1, Item_2 | Other_Items]) ->
-    zip1([{Item_1, Item_2} | Result], Other_Items);
-zip1(Result, []) ->
-    lists:reverse(Result).
+zip1([Item_1, Item_2 | Other_Items]) ->
+    [{Item_1, Item_2} | zip1(Other_Items)];
+zip1([]) ->
+    [].
