@@ -1,8 +1,8 @@
-%% -*- mode: Erlang -*-
+%% -*- mode: erlang -*-
 
 {application, ealt,
  [{description, "Server for easy access to Formula One live timing"},
-  {vsn, "%VSN%"},
+  {vsn, hg},
   {modules, [ealt_app,
              ealt_auth,
              ealt_conversions,
