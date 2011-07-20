@@ -1,5 +1,5 @@
 
-.PHONY: all app clean doc
+.PHONY: all app clean doc rel
 
 all: app
 
@@ -11,3 +11,6 @@ clean:
 
 doc:
 	./rebar doc
+
+rel:
+	./rebar generate

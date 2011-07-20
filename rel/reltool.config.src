@@ -1,0 +1,25 @@
+%% -*- mode: erlang -*-
+
+{sys, [{lib_dirs, ["../.."]},
+       {rel, "ealt", "%VSN%",
+        [ealt,
+         kernel,
+         sasl,
+         stdlib]},
+       {rel, "start_clean", "",
+        [kernel,
+         stdlib]},
+       {boot_rel, "ealt"},
+       {profile, embedded},
+       {excl_sys_filters, ["^bin/.*",
+                           "^erts.*/bin/(dialyzer|typer)"]},
+       {app, sasl, [{incl_cond, include}]}]}.
+
+{target_dir, "ealt-%VSN%"}.
+
+{overlay, [{mkdir, "log/sasl"},
+           {copy, "files/erl", "\{\{erts_vsn\}\}/bin/erl"},
+           {copy, "files/nodetool", "\{\{erts_vsn\}\}/bin/nodetool"},
+           {copy, "files/ealt", "bin/ealt"},
+           {copy, "files/app.config", "etc/app.config"},
+           {copy, "files/vm.args", "etc/vm.args"}]}.

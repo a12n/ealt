@@ -1,6 +1,0 @@
-#!/usr/bin/env escript
-
-main(_Args) ->
-    true = code:add_patha("../ebin"),
-    ok = systools:make_script("ealt", []),
-    ok = systools:make_tar("ealt", [{erts, code:root_dir()}]).
