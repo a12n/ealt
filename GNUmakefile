@@ -1,5 +1,5 @@
 
-.PHONY: all app clean doc rel
+.PHONY: all app clean doc rel test
 
 all: app
 
@@ -14,3 +14,6 @@ doc:
 
 rel:
 	./rebar generate
+
+test:
+	./rebar eunit
