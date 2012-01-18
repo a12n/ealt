@@ -33,6 +33,6 @@ start(_Start_Type, _Start_Args) ->
 %% Stops live timing application.
 %% @end
 %%--------------------------------------------------------------------
--spec stop(term()) -> void().
+-spec stop(term()) -> any().
 stop(_State) ->
     ok.
