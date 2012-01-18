@@ -1,5 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @author Anton Yabchinskiy <arn@users.berlios.de>
+%%% @copyright See LICENSE file.
 %%% @doc
 %%% TODO
 %%% @end

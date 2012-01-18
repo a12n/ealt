@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @author Anton Yabchinskiy <arn@users.berlios.de>
-%%% @copyright 2011, Anton Yabchinskiy
+%%% @copyright See LICENSE file.
 %%% @doc
 %%% Packet decryption server.
 %%% @end
