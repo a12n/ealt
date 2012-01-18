@@ -9,9 +9,7 @@
 
 %% API
 -export([add_handler/2, client_connected/1, delete_handler/2,
-         packet_extracted/1, start/0, start_link/0, stop/0]).
-
--define(SERVER, ?MODULE). 
+         packet_extracted/1, start_link/0]).
 
 %%%===================================================================
 %%% API
@@ -20,69 +18,46 @@
 %%--------------------------------------------------------------------
 %% @doc
 %% Adds packet handler to the event manager.
-%%
-%% @spec add_handler(Handler :: atom(), Args :: term()) -> ok | {'EXIT', Reason :: term()} | term()
 %% @end
 %%--------------------------------------------------------------------
+-spec add_handler(atom(), term()) -> ok | {'EXIT', term()} | term().
 add_handler(Handler, Args) ->
-    gen_event:add_handler(?SERVER, Handler, Args).
+    gen_event:add_handler(?MODULE, Handler, Args).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Notify packet handlers about connected client.
-%%
-%% @spec client_connected(Client :: port()) -> ok
 %% @end
 %%--------------------------------------------------------------------
+-spec client_connected(fun()) -> ok.
 client_connected(Client) ->
-    gen_event:notify(?SERVER, {client_connected, Client}).
+    gen_event:notify(?MODULE, {client_connected, Client}).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Deletes packet handler from the event manager.
-%%
-%% @spec delete_handler(Handler :: atom(), Args :: term()) -> term() | {error, module_not_found} | {'EXIT', Reason :: term()}
 %% @end
 %%--------------------------------------------------------------------
+-spec delete_handler(atom(), term()) ->
+                            term() | {error, module_not_found} |
+                            {'EXIT', term()}.
 delete_handler(Handler, Args) ->
-    gen_event:delete_handler(?SERVER, Handler, Args).
+    gen_event:delete_handler(?MODULE, Handler, Args).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Notify packet handlers about extracted packet.
-%%
-%% @spec packet_extracted(Packet :: #packet{}) -> ok
 %% @end
 %%--------------------------------------------------------------------
+-spec packet_extracted(term()) -> ok.
 packet_extracted(Packet) ->
-    gen_event:notify(?SERVER, {packet_extracted, Packet}).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Creates stand-alone event manager.
-%%
-%% @spec start() -> {ok, Pid :: pid()} | {error, Error :: term()}
-%% @end
-%%--------------------------------------------------------------------
-start() ->
-    gen_event:start({local, ?SERVER}).
+    gen_event:notify(?MODULE, {packet_extracted, Packet}).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Creates event manager in a supervision tree.
-%%
-%% @spec start_link() -> {ok, Pid :: pid()} | {error, Error :: term()}
 %% @end
 %%--------------------------------------------------------------------
+-spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
-    gen_event:start_link({local, ?SERVER}).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Stops event manager.
-%%
-%% @spec stop() -> ok
-%% @end
-%%--------------------------------------------------------------------
-stop() ->
-    gen_event:stop(?SERVER).
+    gen_event:start_link({local, ?MODULE}).
