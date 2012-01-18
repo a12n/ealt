@@ -1,6 +1,7 @@
 
-.PHONY: all app clean doc rel test
+.PHONY: all app clean doc test shell start
 
+ERL ?= erl
 REBAR ?= ./rebar
 
 all:
@@ -14,6 +15,12 @@ clean:
 
 doc:
 	$(REBAR) doc
+
+shell:
+	$(ERL) -pa ebin/ -pa deps/*/ebin/ -config priv/ealt.config -boot start_sasl
+
+start:
+	$(ERL) -pa ebin/ -pa deps/*/ebin/ -config priv/ealt.config -boot start_sasl -s ealt
 
 test:
 	$(REBAR) eunit
