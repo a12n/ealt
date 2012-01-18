@@ -1,5 +1,5 @@
 
-.PHONY: all app clean doc test shell start
+.PHONY: all app arch clean doc test shell start
 
 ERL ?= erl
 REBAR ?= ./rebar
@@ -9,6 +9,9 @@ all:
 
 app:
 	$(REBAR) compile skip_deps=true
+
+arch:
+	hg arch ealt-`cat vsn`.tar.gz -X ".hg*"
 
 clean:
 	$(REBAR) clean
