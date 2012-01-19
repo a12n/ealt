@@ -9,7 +9,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("ealt_packets.hrl").
+-include("ealt.hrl").
 
 %% API
 -export([convert_packet/1, convert_packet/2]).

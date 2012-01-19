@@ -9,8 +9,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("ealt_macros.hrl").
--include("ealt_packets.hrl").
+-include("ealt.hrl").
+-include("ealt_internal.hrl").
 
 -behaviour(gen_server).
 
