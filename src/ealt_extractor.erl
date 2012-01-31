@@ -15,13 +15,11 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, start/0, stop/0]).
+-export([start_link/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
-
--define(SERVER, ?MODULE).
 
 -define(MIN_REFRESH_RATE, 1000).
 -define(MAX_REFRESH_RATE, 120000).
@@ -36,33 +34,13 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts stand-alone packet extraction server.
-%%
-%% @spec start() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
-%% @end
-%%--------------------------------------------------------------------
-start() ->
-    gen_server:start({local, ?SERVER}, ?MODULE, [], []).
-
-%%--------------------------------------------------------------------
-%% @doc
 %% Starts packet extraction server in supervision tree.
 %%
 %% @spec start_link() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Stops packet extraction server.
-%%
-%% @spec stop() -> ok
-%% @end
-%%--------------------------------------------------------------------
-stop() ->
-    gen_server:cast(?SERVER, stop).
+    gen_server:start_link(?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks
