@@ -8,7 +8,8 @@
 -module(ealt_packets).
 
 %% API
--export([descramble_payload/3, read_packet/1]).
+-export([descramble_payload/3, packet_to_term/1, packet_to_term/2,
+         read_packet/1]).
 
 -include("ealt_packets.hrl").
 
@@ -28,6 +29,39 @@ descramble_payload(Bytes, Key, Mask) ->
 
 %%--------------------------------------------------------------------
 %% @doc
+%% Convert <em>Packet</em> to Erlang term of packet's internal
+%% representation.
+%% @end
+%%--------------------------------------------------------------------
+-spec packet_to_term(#packet{}) -> term().
+packet_to_term(_Packet) ->
+    %% TODO
+    undefined.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Convert <em>Packet</em> to Erlang term of packet's internal
+%% representation.
+%%
+%% Car packet payload may be different for practice, qualifying and race
+%% sessions. <em>Session</em> parameter is required for
+%% differentiation.
+%% @end
+%%--------------------------------------------------------------------
+-spec packet_to_term(session(), #packet{}) -> term().
+packet_to_term(practice, _Packet) ->
+    %% TODO
+    undefined;
+packet_to_term(qualifying, _Packet) ->
+    %% TODO
+    undefined;
+packet_to_term(race, _Packet) ->
+    %% TODO
+    undefined.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% TODO
 %% @end
 %%--------------------------------------------------------------------
 -spec read_packet(binary()) -> {ok, #packet{}, binary()} |
@@ -110,9 +144,9 @@ read_packet(Car = 0, Type = ?TIMESTAMP_PACKET, Extra, Bytes) ->
     {Scrambled, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, 2, Bytes) of
         {ok, _Data, Payload, Other_Bytes} ->
-            Packet = #packet{ car     = Car,
-                              type    = Type,
-                              extra   = Extra,
+            Packet = #packet{ car = Car,
+                              type = Type,
+                              extra = Extra,
                               payload = {Scrambled, Payload} },
             {ok, Packet, Other_Bytes};
         Other ->
@@ -122,9 +156,9 @@ read_packet(Car, Type, Extra, Bytes) ->
     {Scrambled, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, Extra, Bytes) of
         {ok, Data, Payload, Other_Bytes} ->
-            Packet = #packet{ car     = Car,
-                              type    = Type,
-                              extra   = Data,
+            Packet = #packet{ car = Car,
+                              type = Type,
+                              extra = Data,
                               payload = {Scrambled, Payload} },
             {ok, Packet, Other_Bytes};
         Other ->
@@ -161,7 +195,7 @@ read_payload(long, Extra, Bytes) ->
             {more, undefined}
     end;
 read_payload(short, Extra, Bytes) ->
-    Data   = Extra band 2#111,
+    Data = Extra band 2#111,
     Length = Extra bsr 3,
     case Length of
         2#1111 ->

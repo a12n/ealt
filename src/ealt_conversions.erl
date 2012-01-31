@@ -4,6 +4,8 @@
 %%% @doc
 %%% Packet conversions to internal representation.
 %%% @end
+%%% @todo Code from this module should be moved to ealt_packets
+%%% module.
 %%%-------------------------------------------------------------------
 -module(ealt_conversions).
 

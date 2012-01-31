@@ -1,6 +1,8 @@
 
 -type payload() :: {plain | scrambled, binary()}.
 
+-type session() :: practice | qualifying | race.
+
 -record(packet, { car     :: integer(),
                   type    :: integer(),
                   extra   :: integer(),
