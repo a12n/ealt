@@ -92,9 +92,6 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(stop, State) ->
-    Reason = normal,
-    {stop, Reason, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
