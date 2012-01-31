@@ -15,7 +15,7 @@
 -behaviour(gen_server).
 
 %% API
--export([process_packet/1, start_link/0]).
+-export([process_packet/1, start_link/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -23,7 +23,7 @@
 
 -define(INITIAL_MASK, 16#55555555).
 
--record(state, {key = 0, mask = ?INITIAL_MASK, session}).
+-record(state, { cookie, key = 0, mask = ?INITIAL_MASK, session }).
 
 %%%===================================================================
 %%% API
@@ -44,8 +44,8 @@ process_packet(Packet) ->
 %% Starts decrypting server in supervision tree.
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+start_link(Cookie) ->
+    gen_server:start_link(?MODULE, Cookie, []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -62,8 +62,8 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init(Cookie) ->
+    {ok, #state{ cookie = Cookie }}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -211,8 +211,7 @@ decrypt_payload(Decrypted, <<Byte, Encrypted_1/bytes>>, Key, Mask) ->
 %%     State_1 :: #state{}
 %% @end
 %%--------------------------------------------------------------------
-handle_special_packet({event_id, {Session, Event_Id}}, State) ->
-    {ok, Cookie} = ealt_auth:user_cookie(),
+handle_special_packet({event_id, {Session, Event_Id}}, State = #state{ cookie = Cookie }) ->
     {ok, Key} = key(Event_Id, Cookie),
     ?debugFmt("Received key ~p.", [Key]),
     State#state{key = Key, mask = ?INITIAL_MASK, session = Session};
