@@ -4,12 +4,13 @@
 %%% @doc
 %%% Packet decryption server.
 %%% @end
+%%% @todo This module should be merged with extractor server.
 %%%-------------------------------------------------------------------
 -module(ealt_decoder).
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("ealt.hrl").
+-include("ealt_packets.hrl").
 -include("ealt_internal.hrl").
 
 -behaviour(gen_server).
@@ -155,9 +156,9 @@ code_change(_Old_Vsn, State, _Extra) ->
 %%     {Packet_1 :: #packet{}, State_1 :: #state{}}
 %% @end
 %%--------------------------------------------------------------------
-decrypt_packet(Packet = #packet{payload = {true, Payload}},
+decrypt_packet(Packet = #packet{payload = {scrambled, Payload}},
                State = #state{key = Key, mask = Mask}) ->
-    {Payload_1, Mask_1} = decrypt_payload(Payload, Key, Mask),
+    {Payload_1, Mask_1} = ealt_packets:descramble_payload(Payload, Key, Mask),
     ?debugFmt("Encrypted payload ~p (~p bytes), mask ~p.",
               [Payload, size(Payload), Mask]),
     ?debugFmt("Decrypted payload ~p (~p bytes), mask ~p.",
@@ -167,38 +168,6 @@ decrypt_packet(Packet = #packet{payload = {true, Payload}},
     {Packet_1, State_1};
 decrypt_packet(Packet, State) ->
     {Packet, State}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Decrypt <em>Bytes</em> of payload.
-%%
-%% @spec decrypt_payload(Encrypted :: binary(), Key :: integer(), Mask :: integer()) ->
-%%     {Decrypted :: binary(), Mask_1 :: integer()}
-%% @end
-%%--------------------------------------------------------------------
-decrypt_payload(Encrypted, Key, Mask) ->
-    decrypt_payload(<<>>, Encrypted, Key, Mask).
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Decrypt <em>Bytes</em> of payload appending to the provided binary.
-%%
-%% @spec decrypt_payload(Decrypted :: binary(),
-%%                       Encrypted :: binary(),
-%%                       Key :: integer(),
-%%                       Mask :: integer()) ->
-%%     {Decrypted_1 :: binary(), Mask_1 :: integer()}
-%% @end
-%%--------------------------------------------------------------------
-decrypt_payload(Decrypted, <<>>, _Key, Mask) ->
-    {Decrypted, Mask};
-decrypt_payload(Decrypted, <<Byte, Encrypted_1/bytes>>, Key, Mask) ->
-    Mask_1 = ((Mask bsr 1) bxor (Mask band 1) * Key) band 16#ffffffff,
-    Byte_1 = Byte bxor (Mask_1 band 16#ff),
-    Decrypted_1 = <<Decrypted/bytes, Byte_1>>,
-    decrypt_payload(Decrypted_1, Encrypted_1, Key, Mask_1).
 
 %%--------------------------------------------------------------------
 %% @private
