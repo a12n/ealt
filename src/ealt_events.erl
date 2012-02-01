@@ -60,4 +60,4 @@ packet_extracted(Packet) ->
 %%--------------------------------------------------------------------
 -spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
-    gen_event:start_link().
+    gen_event:start_link({local, ?MODULE}).
