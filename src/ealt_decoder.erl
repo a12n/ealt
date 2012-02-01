@@ -141,6 +141,7 @@ handle_special_packet({event, Id, Session}, State = #state{ cookie = Cookie }) -
     State#state{ key = Key, mask = ?INITIAL_MASK, session = Session };
 handle_special_packet({keyframe, Next_Id}, State = #state{ buffer = Buffer,
                                                            keyframe_id = Id }) ->
+    %% TODO: Reset mask on new keyframe?
     case Id of
         undefined ->
             {ok, Keyframe_Bytes} = keyframe(Next_Id),
