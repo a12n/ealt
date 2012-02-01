@@ -8,7 +8,7 @@
 -module(ealt_utils).
 
 %% API
--export([binary_to_integer/1, binary_to_number/1, zip1/1]).
+-export([binary_to_integer/1, binary_to_number/1, bounded/3, zip1/1]).
 
 %%%===================================================================
 %%% API
@@ -49,6 +49,19 @@ binary_to_number(Binary) ->
                     undefined
             end
     end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Bounded <em>Value</em>. If <em>Value</em> is less than
+%% <em>Min</em>, then <em>Min</em> is returned. If <em>Value</em> is
+%% greater than <em>Max</em>, then <em>Max</em> is the
+%% result. Otherwise <em>Value</em> itself is returned.
+%% @end
+%%--------------------------------------------------------------------
+-spec bounded(number(), number(), number()) -> number().
+bounded(Value, Min, _Max) when Value < Min -> Min;
+bounded(Value, _Min, Max) when Value > Max -> Max;
+bounded(Value, _Min, _Max) -> Value.
 
 %%--------------------------------------------------------------------
 %% @doc
