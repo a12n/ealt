@@ -259,6 +259,7 @@ read_packets(State = #state{ buffer = Buffer,
             Packet_Term =
                 ealt_packets:packet_to_term(Session, Packet),
             ?dump_value({Scrambled_Packet, Packet, Packet_Term}),
+            %% TODO: Do not dispatch packet term if it's undefined.
             ealt_events:packet_extracted(Packet_Term),
             Next_State =
                 handle_special_packet(Packet_Term,
