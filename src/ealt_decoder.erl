@@ -94,10 +94,10 @@ handle_info({tcp, _Socket, Bytes}, State = #state{ buffer = Buffer }) ->
     Next_State = read_packets(State#state{ buffer = <<Buffer/bytes, Bytes/bytes>> }),
     {noreply, Next_State, Next_State#state.refresh_time};
 handle_info({tcp_closed, _Socket}, State) ->
-    error_logger:error_msg("Server closed connection"),
+    error_logger:error_msg("Server closed connection~n"),
     {stop, tcp_closed, State};
 handle_info({tcp_error, Reason}, State) ->
-    error_logger:error_msg("Server connection error, reason ~p", [Reason]),
+    error_logger:error_msg("Server connection error, reason ~p~n", [Reason]),
     {stop, tcp_error, State};
 handle_info(timeout, State = #state{ refresh_time = Timeout, socket = Socket }) ->
     ok = gen_tcp:send(Socket, ?PING_PACKET),
@@ -258,6 +258,7 @@ read_packets(State = #state{ buffer = Buffer,
                                                Mask),
             Packet_Term =
                 ealt_packets:packet_to_term(Session, Packet),
+            ?dump_value({Scrambled_Packet, Packet, Packet_Term}),
             ealt_events:packet_extracted(Packet_Term),
             Next_State =
                 handle_special_packet(Packet_Term,
