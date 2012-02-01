@@ -93,7 +93,7 @@ read_packet(_Bytes) ->
 binary_to_gap(<<>>) ->
     undefined;
 binary_to_gap(<<"LAP">>) ->
-    {laps, 1};
+    undefined;
 binary_to_gap(<<L:1/bytes, $L>>) ->
     {laps, binary_to_integer(L)};
 binary_to_gap(<<L:2/bytes, $L>>) ->
@@ -168,7 +168,15 @@ car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_3_PACKET, Payload
     {period_3, Car, Payload};                  % FIXME: period_3?
 %% Race
 car_packet_to_term(race, Car, _Type = ?RACE_INTERVAL_PACKET, Payload) ->
-    {interval, Car, Payload};                   % FIXME: interval?
+    try
+        %% "The Gap & Interval column for the leading driver always shows
+        %% the number of laps completed, rather than the Gap and Interval
+        %% information for that driver."
+        {lap, Car, binary_to_integer(Payload)}
+    catch
+        error : badarg ->
+            {interval, Car, binary_to_gap(Payload)}
+    end;
 car_packet_to_term(race, Car, _Type = ?RACE_LAP_TIME_PACKET, Payload) ->
     {lap_time, Car, binary_to_time(Payload)};
 car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_1_PACKET, Payload) ->
@@ -188,7 +196,15 @@ car_packet_to_term(Session, Car, Type, Payload)
 car_packet_to_term(Session, Car, Type, Payload)
   when ((Session =:= practice) and (Type =:= ?PRACTICE_GAP_PACKET)) or
        ((Session =:= race) and (Type =:= ?RACE_GAP_PACKET)) ->
-    {gap, Car, binary_to_gap(Payload)};
+    case Payload of
+        <<"LAP">> ->
+            %% "The Gap & Interval column for the leading driver always shows
+            %% the number of laps completed, rather than the Gap and Interval
+            %% information for that driver."
+            undefined;
+        _Other ->
+            {gap, Car, binary_to_gap(Payload)}
+    end;
 %% Practice, qualifying, race
 car_packet_to_term(Session, Car, Type, Payload)
   when ((Session =:= practice) and (Type =:= ?PRACTICE_SECTOR_1_TIME_PACKET)) or
