@@ -8,11 +8,47 @@
 -module(ealt_utils).
 
 %% API
--export([zip1/1]).
+-export([binary_to_integer/1, binary_to_number/1, zip1/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Converts <em>Binary</em> to integer. If conversion is not possible,
+%% returns `undefined'.
+%% @end
+%%--------------------------------------------------------------------
+-spec binary_to_integer(binary()) -> integer() | undefined.
+binary_to_integer(Binary) ->
+    try
+        list_to_integer(binary_to_list(Binary))
+    catch
+        error : badarg ->
+            undefined
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Converts <em>Binary</em> to number. If conversion is not possible,
+%% returns `undefined'.
+%% @end
+%%--------------------------------------------------------------------
+-spec binary_to_number(binary()) -> number() | undefined.
+binary_to_number(Binary) ->
+    List = binary_to_list(Binary),
+    try
+        list_to_integer(List)
+    catch
+        error : badarg ->
+            try
+                list_to_float(List)
+            catch
+                error : badarg ->
+                    undefined
+            end
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
