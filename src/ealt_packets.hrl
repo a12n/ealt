@@ -13,9 +13,10 @@
 
 -define(POSITION_UPDATE_PACKET, 0).
 %% Types from 1 to 13 are update packets for live timing display columns.
--define(RACE_POSITION_PACKET, 1).
--define(RACE_NUMBER_PACKET, 2).
--define(RACE_DRIVER_PACKET, 3).
+-define(POSITION_PACKET, 1).
+-define(NUMBER_PACKET, 2).
+-define(DRIVER_PACKET, 3).
+%% Race
 -define(RACE_GAP_PACKET, 4).
 -define(RACE_INTERVAL_PACKET, 5).
 -define(RACE_LAP_TIME_PACKET, 6).
@@ -26,18 +27,14 @@
 -define(RACE_SECTOR_3_TIME_PACKET, 11).
 -define(RACE_PIT_LAP_3_PACKET, 12).
 -define(RACE_N_PITS_PACKET, 13).
--define(PRACTICE_POSITION_PACKET, 1).
--define(PRACTICE_NUMBER_PACKET, 2).
--define(PRACTICE_DRIVER_PACKET, 3).
+%% Practice
 -define(PRACTICE_BEST_TIME_PACKET, 4).
 -define(PRACTICE_GAP_PACKET, 5).
 -define(PRACTICE_SECTOR_1_TIME_PACKET, 6).
 -define(PRACTICE_SECTOR_2_TIME_PACKET, 7).
 -define(PRACTICE_SECTOR_3_TIME_PACKET, 8).
 -define(PRACTICE_LAP_PACKET, 9).
--define(QUALIFYING_POSITION_PACKET, 1).
--define(QUALIFYING_NUMBER_PACKET, 2).
--define(QUALIFYING_DRIVER_PACKET, 3).
+%% Qualifying
 -define(QUALIFYING_PERIOD_1_PACKET, 4).
 -define(QUALIFYING_PERIOD_2_PACKET, 5).
 -define(QUALIFYING_PERIOD_3_PACKET, 6).
@@ -45,6 +42,7 @@
 -define(QUALIFYING_SECTOR_2_TIME_PACKET, 8).
 -define(QUALIFYING_SECTOR_3_TIME_PACKET, 9).
 -define(QUALIFYING_LAP_PACKET, 10).
+%% History
 -define(POSITION_HISTORY_PACKET, 15).
 
 %%----------------------------------------------------------------------------
