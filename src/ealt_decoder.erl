@@ -93,9 +93,10 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({process_packet, Packet},
-            State = #state{session = Session}) ->
-    {Packet_1, State_1} = decrypt_packet(Packet, State),
+            State = #state{key = Key, mask = Mask, session = Session}) ->
+    {Packet_1, Next_Mask} = ealt_packets:descramble_packet(Packet, Key, Mask),
     ?debugFmt("Packet ~p decrypted.", [Packet_1]),
+    State_1 = State#state{ mask = Next_Mask },
     Packet_2 = ealt_packets:packet_to_term(Session, Packet_1),
     ?debugFmt("Packet ~p converted.", [Packet_2]),
     State_2 = handle_special_packet(Packet_2, State_1),
@@ -145,28 +146,6 @@ code_change(_Old_Vsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Decrypts packet's payload and updates decryption key in state.
-%%
-%% @spec decrypt_packet(Packet :: #packet{}, State :: #state{}) ->
-%%     {Packet_1 :: #packet{}, State_1 :: #state{}}
-%% @end
-%%--------------------------------------------------------------------
-decrypt_packet(Packet = #packet{payload = {scrambled, Payload}},
-               State = #state{key = Key, mask = Mask}) ->
-    {Payload_1, Mask_1} = ealt_packets:descramble_payload(Payload, Key, Mask),
-    ?debugFmt("Encrypted payload ~p (~p bytes), mask ~p.",
-              [Payload, size(Payload), Mask]),
-    ?debugFmt("Decrypted payload ~p (~p bytes), mask ~p.",
-              [Payload_1, size(Payload_1), Mask_1]),
-    Packet_1 = Packet#packet{payload = {false, Payload_1}},
-    State_1 = State#state{mask = Mask_1},
-    {Packet_1, State_1};
-decrypt_packet(Packet, State) ->
-    {Packet, State}.
 
 %%--------------------------------------------------------------------
 %% @private

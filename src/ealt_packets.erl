@@ -8,7 +8,7 @@
 -module(ealt_packets).
 
 %% API
--export([descramble_payload/3, packet_to_term/1, packet_to_term/2,
+-export([descramble_packet/3, packet_to_term/1, packet_to_term/2,
          read_packet/1]).
 
 -include("ealt.hrl").
@@ -21,13 +21,17 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Decrypt scrambled payload <em>Bytes</em>.
+%% Decrypt scrambled <em>Packet</em>.
 %% @end
 %%--------------------------------------------------------------------
--spec descramble_payload(binary(), integer(), integer()) ->
-                                {binary(), integer()}.
-descramble_payload(Bytes, Key, Mask) ->
-    descramble_payload(<<>>, Bytes, Key, Mask).
+-spec descramble_packet(#packet{}, integer(), integer()) ->
+                               {#packet{}, integer()}.
+descramble_packet(Packet = #packet{ payload = {scrambled, Scrambled} },
+                  Key, Mask) ->
+    {Plain, Next_Mask} = descramble_payload(Scrambled, Key, Mask),
+    {Packet#packet{ payload = {plain, Plain} }, Next_Mask};
+descramble_packet(Packet, _Key, Mask) ->
+    {Packet, Mask}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -213,6 +217,17 @@ car_packet_to_term(_Session, Car, _Type = ?POSITION_UPDATE_PACKET, Payload) ->
     {position_update, Car, binary_to_integer(Payload)};
 car_packet_to_term(_Session, Car, _Type = ?POSITION_HISTORY_PACKET, Payload) ->
     {position_history, Car, binary_to_list(Payload)}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Decrypt scrambled payload <em>Bytes</em>.
+%% @end
+%%--------------------------------------------------------------------
+-spec descramble_payload(binary(), integer(), integer()) ->
+                                {binary(), integer()}.
+descramble_payload(Bytes, Key, Mask) ->
+    descramble_payload(<<>>, Bytes, Key, Mask).
 
 %%--------------------------------------------------------------------
 %% @private
