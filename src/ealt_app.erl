@@ -56,7 +56,14 @@ get_env(Key, Default) ->
 %%--------------------------------------------------------------------
 -spec start(term(), term()) -> {ok, pid()} | {error, term()}.
 start(_Start_Type, _Start_Args) ->
-    ealt_sup:start_link().
+    Result = ealt_sup:start_link(),
+    case Result of
+        {ok, _Pid} ->
+            ealt_translator:add_handler();
+        _Other ->
+            ok
+    end,
+    Result.
 
 %%--------------------------------------------------------------------
 %% @private
