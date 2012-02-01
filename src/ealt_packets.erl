@@ -55,7 +55,7 @@ packet_to_term(Session, #packet{ car = Car,
                                  extra = Extra,
                                  payload = {plain, Payload} }) ->
     if Car =/= 0 ->
-            car_packet_to_term(Session, Car, Type, Extra, Payload);
+            car_packet_to_term(Session, Car, Type, Payload);
        true ->
             system_packet_to_term(Type, Extra, Payload)
     end.
@@ -151,68 +151,67 @@ binary_to_time(<<M:1/bytes, $:, S:2/bytes>>) ->
 -spec car_packet_to_term(session() | undefined,
                          integer(),
                          integer(),
-                         integer() | undefined,
                          binary()) -> term().
 %% Practice
-car_packet_to_term(practice, Car, _Type = ?PRACTICE_BEST_TIME_PACKET, _Extra, Payload) ->
+car_packet_to_term(practice, Car, _Type = ?PRACTICE_BEST_TIME_PACKET, Payload) ->
     {best_time, Car, binary_to_time(Payload)};
 %% Qualifying
-car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_1_PACKET, _Extra, Payload) ->
+car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_1_PACKET, Payload) ->
     {period_1, Car, Payload};                   % FIXME: period_1?
-car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_2_PACKET, _Extra, Payload) ->
+car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_2_PACKET, Payload) ->
     {period_2, Car, Payload};                   % FIXME: period_2?
-car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_3_PACKET, _Extra, Payload) ->
+car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_3_PACKET, Payload) ->
     {period_3, Car, Payload};                  % FIXME: period_3?
 %% Race
-car_packet_to_term(race, Car, _Type = ?RACE_INTERVAL_PACKET, _Extra, Payload) ->
+car_packet_to_term(race, Car, _Type = ?RACE_INTERVAL_PACKET, Payload) ->
     {interval, Car, Payload};                   % FIXME: interval?
-car_packet_to_term(race, Car, _Type = ?RACE_LAP_TIME_PACKET, _Extra, Payload) ->
+car_packet_to_term(race, Car, _Type = ?RACE_LAP_TIME_PACKET, Payload) ->
     {lap_time, Car, binary_to_time(Payload)};
-car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_1_PACKET, _Extra, Payload) ->
+car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_1_PACKET, Payload) ->
     {pit_lap_1, Car, Payload};                  % FIXME: pit_lap_1?
-car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_2_PACKET, _Extra, Payload) ->
+car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_2_PACKET, Payload) ->
     {pit_lap_2, Car, Payload};                  % FIXME: pit_lap_2?
-car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_3_PACKET, _Extra, Payload) ->
+car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_3_PACKET, Payload) ->
     {pit_lap_3, Car, Payload};
-car_packet_to_term(race, Car, _Type = ?RACE_N_PITS_PACKET, _Extra, Payload) ->
+car_packet_to_term(race, Car, _Type = ?RACE_N_PITS_PACKET, Payload) ->
     {n_pits, Car, binary_to_integer(Payload)};
 %% Practice, qualifying
-car_packet_to_term(Session, Car, Type, _Extra, Payload)
+car_packet_to_term(Session, Car, Type, Payload)
   when (Session =:= practice and Type =:= ?PRACTICE_LAP_PACKET) or
        (Session =:= qualifying and Type =:= ?QUALIFYING_LAP_PACKET) ->
     {lap, Car, binary_to_integer(Payload)};
 %% Practice, race
-car_packet_to_term(Session, Car, Type, _Extra, Payload)
+car_packet_to_term(Session, Car, Type, Payload)
   when (Session =:= practice and Type =:= ?PRACTICE_GAP_PACKET) or
        (Session =:= race and Type =:= ?RACE_GAP_PACKET) ->
     {gap, Car, binary_to_gap(Payload)};
 %% Practice, qualifying, race
-car_packet_to_term(Session, Car, Type, _Extra, Payload)
+car_packet_to_term(Session, Car, Type, Payload)
   when (Session =:= practice and Type =:= ?PRACTICE_SECTOR_1_TIME_PACKET) or
        (Session =:= qualifying and Type =:= ?QUALIFYING_SECTOR_1_TIME_PACKET) or
        (Session =:= race and Type =:= ?RACE_SECTOR_1_TIME_PACKET) ->
     {sector_1_time, Car, binary_to_time(Payload)};
-car_packet_to_term(Session, Car, Type, _Extra, Payload)
+car_packet_to_term(Session, Car, Type, Payload)
   when (Session =:= practice and Type =:= ?PRACTICE_SECTOR_2_TIME_PACKET) or
        (Session =:= qualifying and Type =:= ?QUALIFYING_SECTOR_2_TIME_PACKET) or
        (Session =:= race and Type =:= ?RACE_SECTOR_2_TIME_PACKET) ->
     {sector_2_time, Car, binary_to_time(Payload)};
-car_packet_to_term(Session, Car, Type, _Extra, Payload)
+car_packet_to_term(Session, Car, Type, Payload)
   when (Session =:= practice and Type =:= ?PRACTICE_SECTOR_3_TIME_PACKET) or
        (Session =:= qualifying and Type =:= ?QUALIFYING_SECTOR_3_TIME_PACKET) or
        (Session =:= race and Type =:= ?RACE_SECTOR_3_TIME_PACKET) ->
     {sector_3_time, Car, binary_to_time(Payload)};
 %% Practice, qualifying, race
-car_packet_to_term(_Session, Car, _Type = ?POSITION_PACKET, _Extra, Payload) ->
+car_packet_to_term(_Session, Car, _Type = ?POSITION_PACKET, Payload) ->
     {position, Car, binary_to_integer(Payload)};
-car_packet_to_term(_Session, Car, _Type = ?NUMBER_PACKET, _Extra, Payload) ->
+car_packet_to_term(_Session, Car, _Type = ?NUMBER_PACKET, Payload) ->
     {number, Car, binary_to_integer(Payload)};
-car_packet_to_term(_Session, Car, _Type = ?DRIVER_PACKET, _Extra, Payload) ->
+car_packet_to_term(_Session, Car, _Type = ?DRIVER_PACKET, Payload) ->
     {driver, Car, Payload};
 %% Other
-car_packet_to_term(_Session, Car, _Type = ?POSITION_UPDATE_PACKET, _Extra, Payload) ->
+car_packet_to_term(_Session, Car, _Type = ?POSITION_UPDATE_PACKET, Payload) ->
     {position_update, Car, binary_to_integer(Payload)};
-car_packet_to_term(_Session, Car, _Type = ?POSITION_HISTORY_PACKET, _Extra, Payload) ->
+car_packet_to_term(_Session, Car, _Type = ?POSITION_HISTORY_PACKET, Payload) ->
     {position_history, Car, binary_to_list(Payload)}.
 
 %%--------------------------------------------------------------------
