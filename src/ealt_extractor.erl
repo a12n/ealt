@@ -7,25 +7,34 @@
 %%%-------------------------------------------------------------------
 -module(ealt_extractor).
 
--include_lib("eunit/include/eunit.hrl").
-
--include("ealt.hrl").
-
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--define(MIN_REFRESH_RATE, 1000).
--define(MAX_REFRESH_RATE, 120000).
+-import(ealt_utils, [bounded/3]).
+
+-include("ealt.hrl").
+
+-define(MIN_REFRESH_TIME, 1000).
+-define(MAX_REFRESH_TIME, 120000).
 
 -define(PING_PACKET, <<16>>).
 
--record(state, {buffer = <<>>, keyframe_id = undefined, refresh_rate = ?MIN_REFRESH_RATE, socket}).
+-define(INITIAL_MASK, 16#55555555).
+
+-record(state, { buffer = <<>>,
+                 cookie,
+                 key = 0,
+                 keyframe_id,
+                 mask = ?INITIAL_MASK,
+                 refresh_time = ?MIN_REFRESH_TIME,
+                 session,
+                 socket }).
 
 %%%===================================================================
 %%% API
@@ -34,12 +43,11 @@
 %%--------------------------------------------------------------------
 %% @doc
 %% Starts packet extraction server in supervision tree.
-%%
-%% @spec start_link() -> {ok, Pid :: pid()} | ignore | {error, Error :: term()}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+-spec start_link(string()) -> {ok, pid()} | ignore | {error, term()}.
+start_link(Cookie) ->
+    gen_server:start_link(?MODULE, Cookie, []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -49,32 +57,19 @@ start_link() ->
 %% @private
 %% @doc
 %% Initializes the server.
-%%
-%% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
-%%                     ignore |
-%%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
+-spec init(string()) -> {ok, #state{}, integer()}.
+init(Cookie) ->
     Options = [binary, {packet, 0}],
     {ok, Socket} = gen_tcp:connect(?LIVE_TIMING_HOST, ?LIVE_TIMING_PORT, Options),
-    State = #state{socket = Socket},
-    Timeout = ?MIN_REFRESH_RATE,
-    {ok, State, Timeout}.
+    State = #state{ cookie = Cookie, socket = Socket },
+    {ok, State, State#state.refresh_time}.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
 %% Handling call messages.
-%%
-%% @spec handle_call(Request, From, State) ->
-%%                                   {reply, Reply, State} |
-%%                                   {reply, Reply, State, Timeout} |
-%%                                   {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, Reply, State} |
-%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_call(_Request, _From, State) ->
@@ -84,10 +79,6 @@ handle_call(_Request, _From, State) ->
 %% @private
 %% @doc
 %% Handling cast messages.
-%%
-%% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(_Msg, State) ->
@@ -97,27 +88,19 @@ handle_cast(_Msg, State) ->
 %% @private
 %% @doc
 %% Handling all non call/cast messages.
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info({tcp, _Socket, Bytes}, State = #state{buffer = Buffer}) ->
-    State_1 = State#state{buffer = <<Buffer/bytes, Bytes/bytes>>},
-    State_2 = read_packets(State_1),
-    Timeout = State_2#state.refresh_rate,
-    {noreply, State_2, Timeout};
-handle_info({Reason = tcp_closed, _Socket}, State) ->
+handle_info({tcp, _Socket, Bytes}, State = #state{ buffer = Buffer }) ->
+    Next_State = read_packets(State#state{ buffer = <<Buffer/bytes, Bytes/bytes>> }),
+    {noreply, Next_State, Next_State#state.refresh_time};
+handle_info({tcp_closed, _Socket}, State) ->
     error_logger:error_msg("Server closed connection"),
-    {stop, Reason, State};
+    {stop, tcp_closed, State};
 handle_info({tcp_error, Reason}, State) ->
-    error_logger:error_msg("Server connection error, reason \"~s\"", [Reason]),
-    {stop, Reason, State};
-handle_info(timeout, State = #state{refresh_rate = Refresh_Rate, socket = Socket}) ->
-    ?debugMsg("Sending ping packet"),
+    error_logger:error_msg("Server connection error, reason ~p", [Reason]),
+    {stop, tcp_error, State};
+handle_info(timeout, State = #state{ refresh_time = Timeout, socket = Socket }) ->
     ok = gen_tcp:send(Socket, ?PING_PACKET),
-    Timeout = Refresh_Rate,
     {noreply, State, Timeout}.
 
 %%--------------------------------------------------------------------
@@ -127,8 +110,6 @@ handle_info(timeout, State = #state{refresh_rate = Refresh_Rate, socket = Socket
 %% terminate. It should be the opposite of Module:init/1 and do any
 %% necessary cleaning up. When it returns, the gen_server terminates
 %% with Reason. The return value is ignored.
-%%
-%% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
@@ -138,8 +119,6 @@ terminate(_Reason, _State) ->
 %% @private
 %% @doc
 %% Convert process state when code is changed.
-%%
-%% @spec code_change(Old_Vsn, State, Extra) -> {ok, NewState}
 %% @end
 %%--------------------------------------------------------------------
 code_change(_Old_Vsn, State, _Extra) ->
@@ -152,57 +131,72 @@ code_change(_Old_Vsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Handles refresh rate and keyframe packets. Modifies <em>State</em>
-%% accordingly.
-%%
-%% @spec handle_special_packet(Packet :: #packet{}, State :: #state{}) ->
-%%     State_1 :: #state{}
+%% Handles refresh rate, keyframe and event packet terms. Modifies
+%% <em>State</em> accordingly.
 %% @end
 %%--------------------------------------------------------------------
-handle_special_packet(#packet{car = 0,
-                              type = ?REFRESH_TIME_PACKET,
-                              extra = Seconds}, State) ->
-    Refresh_Rate =
-        case (Seconds * 1000) of
-            0 -> ?MAX_REFRESH_RATE;
-            N when N < ?MIN_REFRESH_RATE -> ?MIN_REFRESH_RATE;
-            N when N > ?MAX_REFRESH_RATE -> ?MAX_REFRESH_RATE;
-            N -> N
-        end,
-    ?debugFmt("Refresh rate set to ~p.", [Refresh_Rate]),
-    State#state{refresh_rate = Refresh_Rate};
-handle_special_packet(Packet = #packet{car = 0,
-                                       type = ?KEYFRAME_PACKET},
-                      State = #state{buffer = Buffer}) ->
-    {keyframe, Keyframe_Id} = ealt_packets:packet_to_term(Packet),
-    ?debugFmt("Keyframe packet with keyframe id ~p.", [Keyframe_Id]),
-    case State#state.keyframe_id of
+-spec handle_special_packet(term(), #state{}) -> #state{}.
+handle_special_packet({event, Id, Session}, State = #state{ cookie = Cookie }) ->
+    {ok, Key} = key(Id, Cookie),
+    State#state{ key = Key, mask = ?INITIAL_MASK, session = Session };
+handle_special_packet({keyframe, Next_Id}, State = #state{ buffer = Buffer,
+                                                           keyframe_id = Id }) ->
+    case Id of
         undefined ->
-            {ok, Bytes} = keyframe(Keyframe_Id),
-            ?debugFmt("Injecting ~p bytes of data from keyframe ~p.",
-                      [size(Bytes), Keyframe_Id]),
-            State#state{keyframe_id = Keyframe_Id,
-                        buffer = <<Bytes/bytes, Buffer/bytes>>};
-        _Id ->
-            State#state{keyframe_id = Keyframe_Id}
+            {ok, Keyframe_Bytes} = keyframe(Next_Id),
+            State#state{ buffer = <<Keyframe_Bytes/bytes, Buffer/bytes>>,
+                         keyframe_id = Next_Id };
+        _Other ->
+            State#state{ keyframe_id = Next_Id }
     end;
-handle_special_packet(_Packet, State) ->
+handle_special_packet({refresh_time, Time}, State) ->
+    Next_Refresh_Time =
+        bounded(Time * 1000, ?MIN_REFRESH_TIME, ?MAX_REFRESH_TIME),
+    State#state{ refresh_time = Next_Refresh_Time };
+handle_special_packet(_Term, State) ->
     State.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Retrieve packet keyframe of specified id. Parameter is a non negative integer
-%% <em>Keyframe_Id</em> extracted from keyframe packet.
-%%
-%% @spec keyframe(Keyframe_Id :: non_neg_integer()) ->
-%%     {ok, Bytes :: binary()} |
-%%     {error, Reason :: term()} |
-%%     {http_error, Reason :: term()}
+%% Retrieve encryption key for the specific <em>Event_Id</em>. Requires
+%% authentication <em>Cookie</em>.
 %% @end
 %%--------------------------------------------------------------------
+-spec key(binary(), string()) -> {ok, integer()} | {error, term()} |
+                                {http_error, term()}.
+key(Event_Id, Cookie) ->
+    case httpc:request(key_url(Event_Id, Cookie), ealt) of
+        {ok, {{_, Status_Code, _}, _, Content}} when ?is_success(Status_Code) ->
+            parse_key(Content);
+        {ok, {{_, _, Reason}, _, _}} ->
+            {http_error, Reason};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% URL to retrieve event encryption key. Requires <em>Event_Id</em> and
+%% authentication <em>Cookie</em> as the parameters.
+%% @end
+%%--------------------------------------------------------------------
+-spec key_url(binary(), string()) -> string().
+key_url(Event_Id, Cookie) ->
+    lists:flatten(io_lib:format("http://~s/reg/getkey/~s.asp?auth=~s",
+                                [?LIVE_TIMING_HOST, Event_Id, Cookie])).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Retrieve packet keyframe of specified id. Parameter is a non
+%% negative integer <em>Keyframe_Id</em> extracted from keyframe
+%% packet.
+%% @end
+%%--------------------------------------------------------------------
+-spec keyframe(non_neg_integer()) -> {ok, binary()} | {error, term()} |
+                                    {http_error, term()}.
 keyframe(Keyframe_Id) ->
-    ?debugFmt("Receiving keyframe ~p.", [Keyframe_Id]),
     Headers = [],
     HTTP_Options = [],
     Options = [{body_format, binary}],
@@ -222,9 +216,9 @@ keyframe(Keyframe_Id) ->
 %% received. Requires non negative integer <em>Keyframe_Id</em>
 %% parameter.
 %%
-%% @spec keyframe_url(Keyframe_Id :: non_neg_integer()) -> string()
 %% @end
 %%--------------------------------------------------------------------
+-spec keyframe_url(non_neg_integer()) -> string().
 keyframe_url(0) ->
     lists:flatten(io_lib:format("http://~s/keyframe.bin", [?LIVE_TIMING_HOST]));
 keyframe_url(Keyframe_Id) ->
@@ -234,20 +228,42 @@ keyframe_url(Keyframe_Id) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Extract packets from buffer while there are any.
-%%
-%% @spec read_packets(State :: #state{}) -> State_1 :: #state{}
+%% Parses key representation <em>Str</em> as integer key.
 %% @end
 %%--------------------------------------------------------------------
-read_packets(State = #state{buffer = Buffer}) ->
+-spec parse_key(string()) -> {ok, integer()} | {error, term()}.
+parse_key(Str) ->
+    try
+        {ok, list_to_integer(Str, 16)}
+    catch
+        error : badarg ->
+            {error, invalid_key}
+    end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Extract packets from buffer while there are any.
+%% @end
+%%--------------------------------------------------------------------
+-spec read_packets(#state{}) -> #state{}.
+read_packets(State = #state{ buffer = Buffer,
+                             key = Key,
+                             mask = Mask,
+                             session = Session }) ->
     case ealt_packets:read_packet(Buffer) of
-        {ok, Packet, Buffer_1} ->
-            ?debugFmt("Packet ~p extracted.", [Packet]),
-            State_1 = State#state{buffer = Buffer_1},
-            State_2 = handle_special_packet(Packet, State_1),
-            ealt_decoder:process_packet(Packet),
-            read_packets(State_2);
-        {error, no_match} ->
-            ?debugMsg("No more packets in buffer."),
+        {ok, Scrambled_Packet, Next_Buffer} ->
+            {Packet, Next_Mask} =
+                ealt_packets:descramble_packet(Scrambled_Packet, Key,
+                                               Mask),
+            Packet_Term =
+                ealt_packets:packet_to_term(Session, Packet),
+            ealt_event_manager:packet_extracted(Packet_Term),
+            Next_State =
+                handle_special_packet(Packet_Term,
+                                      State#state{ buffer = Next_Buffer,
+                                                   mask = Next_Mask }),
+            read_packets(Next_State);
+        {more, _Length} ->
             State
     end.
