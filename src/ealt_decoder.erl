@@ -97,7 +97,7 @@ handle_cast({process_packet, Packet},
             State = #state{session = Session}) ->
     {Packet_1, State_1} = decrypt_packet(Packet, State),
     ?debugFmt("Packet ~p decrypted.", [Packet_1]),
-    Packet_2 = ealt_conversions:convert_packet(Session, Packet_1),
+    Packet_2 = ealt_packets:packet_to_term(Session, Packet_1),
     ?debugFmt("Packet ~p converted.", [Packet_2]),
     State_2 = handle_special_packet(Packet_2, State_1),
     ealt_event_manager:packet_extracted(Packet_2),
@@ -180,7 +180,7 @@ decrypt_packet(Packet, State) ->
 %%     State_1 :: #state{}
 %% @end
 %%--------------------------------------------------------------------
-handle_special_packet({event_id, {Session, Event_Id}}, State = #state{ cookie = Cookie }) ->
+handle_special_packet({event, Event_Id, Session}, State = #state{ cookie = Cookie }) ->
     {ok, Key} = key(Event_Id, Cookie),
     ?debugFmt("Received key ~p.", [Key]),
     State#state{key = Key, mask = ?INITIAL_MASK, session = Session};
