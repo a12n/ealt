@@ -258,7 +258,7 @@ read_packets(State = #state{ buffer = Buffer,
                                                Mask),
             Packet_Term =
                 ealt_packets:packet_to_term(Session, Packet),
-            ealt_event_manager:packet_extracted(Packet_Term),
+            ealt_events:packet_extracted(Packet_Term),
             Next_State =
                 handle_special_packet(Packet_Term,
                                       State#state{ buffer = Next_Buffer,

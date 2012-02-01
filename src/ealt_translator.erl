@@ -29,7 +29,7 @@
 %% @end
 %%--------------------------------------------------------------------
 add_handler() ->
-    ealt_event_manager:add_handler(?MODULE, []).
+    ealt_events:add_handler(?MODULE, []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -37,7 +37,7 @@ add_handler() ->
 %% @end
 %%--------------------------------------------------------------------
 delete_handler() ->
-    ealt_event_manager:delete_handler(?MODULE, []).
+    ealt_events:delete_handler(?MODULE, []).
 
 %%%===================================================================
 %%% gen_event callbacks

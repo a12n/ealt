@@ -102,7 +102,7 @@ websocket_info(_Info, Req, State) ->
 websocket_init(_Transport, Req, _Opts) ->
     Next_Req = cowboy_http_req:compact(Req),
     _Members = pg:join(?PG, self()),
-    ealt_event_manager:client_connected(make_callback()),
+    ealt_events:client_connected(make_callback()),
     {ok, Next_Req, undefined}.
 
 %%--------------------------------------------------------------------

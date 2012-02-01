@@ -5,7 +5,7 @@
 %%% Protocol translator notifications.
 %%% @end
 %%%-------------------------------------------------------------------
--module(ealt_event_manager).
+-module(ealt_events).
 
 %% API
 -export([add_handler/2, client_connected/1, delete_handler/2,
