@@ -20,10 +20,10 @@ doc:
 	$(REBAR) doc
 
 shell:
-	$(ERL) -pa ebin/ -pa deps/*/ebin/ -config priv/ealt.config -boot start_sasl
+	$(ERL) -pa ebin/ -pa deps/*/ebin/ -config priv/ealt.config
 
 start:
-	$(ERL) -pa ebin/ -pa deps/*/ebin/ -config priv/ealt.config -boot start_sasl -s ealt
+	$(ERL) -pa ebin/ -pa deps/*/ebin/ -config priv/ealt.config -s ealt
 
 test:
 	$(REBAR) eunit
