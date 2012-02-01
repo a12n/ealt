@@ -64,8 +64,8 @@ init(_Args) ->
     {ok, Cookie} = ealt_auth:login(ealt_app:get_env(email),
                                    ealt_app:get_env(password)),
 
-    %% Decoder = {ealt_decoder, {ealt_decoder, start_link, [Cookie]},
-    %%            permanent, 5000, worker, [ealt_decoder]},
+    Decoder = {ealt_decoder, {ealt_decoder, start_link, [Cookie]},
+               permanent, 5000, worker, [ealt_decoder]},
 
     Flags = {one_for_one, 2, 10},
-    {ok, {Flags, [Events, WebSocket]}}.
+    {ok, {Flags, [Events, WebSocket, Decoder]}}.
