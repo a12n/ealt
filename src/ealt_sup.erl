@@ -58,6 +58,8 @@ init(_Args) ->
                                                  {port, WebSocket_Port}],
                           cowboy_http_protocol, [{dispatch, Dispatch}]),
 
+    ealt_websocket:create_pg(),
+
     %% External protocol extractor and decoder
     %% Decoder = {ealt_decoder, {ealt_decoder, start_link, []},
     %%            permanent, 5000, worker, [ealt_decoder]},
