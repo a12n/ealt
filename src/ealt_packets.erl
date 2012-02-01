@@ -168,14 +168,14 @@ car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_3_PACKET, Payload
     {period_3, Car, Payload};                  % FIXME: period_3?
 %% Race
 car_packet_to_term(race, Car, _Type = ?RACE_INTERVAL_PACKET, Payload) ->
-    try
-        %% "The Gap & Interval column for the leading driver always shows
-        %% the number of laps completed, rather than the Gap and Interval
-        %% information for that driver."
-        {lap, Car, binary_to_integer(Payload)}
-    catch
-        error : badarg ->
-            {interval, Car, binary_to_gap(Payload)}
+    %% "The Gap & Interval column for the leading driver always shows
+    %% the number of laps completed, rather than the Gap and Interval
+    %% information for that driver."
+    case binary_to_integer(Payload) of
+        undefined ->
+            {interval, Car, binary_to_gap(Payload)};
+        Lap ->
+            {lap, Car, Lap}
     end;
 car_packet_to_term(race, Car, _Type = ?RACE_LAP_TIME_PACKET, Payload) ->
     {lap_time, Car, binary_to_time(Payload)};
