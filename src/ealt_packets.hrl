@@ -44,7 +44,7 @@
 -define(QUALIFYING_SECTOR_1_TIME_PACKET, 7).
 -define(QUALIFYING_SECTOR_2_TIME_PACKET, 8).
 -define(QUALIFYING_SECTOR_3_TIME_PACKET, 9).
--define(QUALIFYING_LAP_PACKET_PACKET, 10).
+-define(QUALIFYING_LAP_PACKET, 10).
 -define(POSITION_HISTORY_PACKET, 15).
 
 %%----------------------------------------------------------------------------
@@ -85,7 +85,7 @@
 -define(FASTEST_LAP_CAR_PACKET, 5).
 -define(FASTEST_LAP_DRIVER_PACKET, 6).
 -define(FASTEST_LAP_TIME_PACKET, 7).
--define(FASTEST_LAP_LAP_PACKET, 8).
+-define(FASTEST_LAP_NUMBER_PACKET, 8).
 
 %% Sub-types of the SESSION_STATUS_PACKET.
 -define(SESSION_FLAG_PACKET, 1).
