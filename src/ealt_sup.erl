@@ -43,19 +43,24 @@ start_link() ->
 %%--------------------------------------------------------------------
 -spec init(term()) -> {ok, term()}.
 init(_Args) ->
-    Restart_Strategy = one_for_one,
-    Max_Restarts = 1,
-    Max_Seconds_Between_Restarts = 10,
-    Sup_Flags = {Restart_Strategy, Max_Restarts, Max_Seconds_Between_Restarts},
     %% Event manager
-    Event_Manager = {ealt_event_manager, {ealt_event_manager, start_link, []},
-                     permanent, 5000, worker, [ealt_event_manager]},
-    %% Internal protocol dispatcher
-    Dispatcher = {ealt_dispatcher, {ealt_dispatcher, start_link, []},
-                  permanent, 5000, worker, [ealt_dispatcher]},
+    Events = {ealt_events, {ealt_events, start_link, []},
+              permanent, 5000, worker, [ealt_events]},
+
+    %% WebSocket server
+    WebSocket_Address = ealt_app:get_env(websocket_address, {127, 0, 0, 1}),
+    WebSocket_Port = ealt_app:get_env(websocket_port, 8642),
+    WebSocket_Path = ealt_app:get_env(websocket_path, [<<"events">>]),
+    Dispatch = [{'_', [{WebSocket_Path, ealt_websocket, []}]}],
+    WebSocket =
+        cowboy:child_spec(ealt_websocket, 10,
+                          cowboy_tcp_transport, [{ip, WebSocket_Address},
+                                                 {port, WebSocket_Port}],
+                          cowboy_http_protocol, [{dispatch, Dispatch}]),
+
     %% External protocol extractor and decoder
-    Decoder = {ealt_decoder, {ealt_decoder, start_link, []},
-               permanent, 5000, worker, [ealt_decoder]},
-    Extractor = {ealt_extractor, {ealt_extractor, start_link, []},
-                 permanent, 5000, worker, [ealt_extractor]},
-    {ok, {Sup_Flags, [Event_Manager, Dispatcher, Decoder, Extractor]}}.
+    %% Decoder = {ealt_decoder, {ealt_decoder, start_link, []},
+    %%            permanent, 5000, worker, [ealt_decoder]},
+
+    Flags = {one_for_one, 2, 10},
+    {ok, {Flags, [Events, WebSocket]}}.
