@@ -79,8 +79,7 @@ init([]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
+    {reply, ok, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -176,7 +175,7 @@ handle_special_packet(#packet{car = 0,
 handle_special_packet(Packet = #packet{car = 0,
                                        type = ?KEYFRAME_PACKET},
                       State = #state{buffer = Buffer}) ->
-    {keyframe, Keyframe_Id} = ealt_conversions:convert_packet(Packet),
+    {keyframe, Keyframe_Id} = ealt_packets:packet_to_term(Packet),
     ?debugFmt("Keyframe packet with keyframe id ~p.", [Keyframe_Id]),
     case State#state.keyframe_id of
         undefined ->
