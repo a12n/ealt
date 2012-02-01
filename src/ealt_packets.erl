@@ -11,7 +11,7 @@
 -export([descramble_payload/3, packet_to_term/1, packet_to_term/2,
          read_packet/1]).
 
--include("ealt_packets.hrl").
+-include("ealt.hrl").
 
 -import(ealt_utils, [binary_to_integer/1, binary_to_number/1]).
 

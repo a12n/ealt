@@ -61,10 +61,10 @@ init(_Args) ->
 %% called for each installed event handler to handle the event.
 %% @end
 %%--------------------------------------------------------------------
-handle_event({client_connected, Client}, State) ->
+handle_event({client_connected, _Client}, State) ->
     %% TODO: Send current state to the client.
     {ok, State};
-handle_event({packet_extracted, Packet}, State) ->
+handle_event({packet_extracted, _Packet}, State) ->
     %% TODO: Translate and send.
     {ok, State};
 handle_event(_Event, State) ->

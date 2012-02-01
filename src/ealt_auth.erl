@@ -7,7 +7,7 @@
 %%%-------------------------------------------------------------------
 -module(ealt_auth).
 
--include("ealt_internal.hrl").
+-include("ealt.hrl").
 
 %% API
 -export([login/2]).

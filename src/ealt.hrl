@@ -1,4 +1,18 @@
 
+-define(LIVE_TIMING_HOST, "live-timing.formula1.com").
+-define(LIVE_TIMING_PORT, 4321).
+-define(SECURE_HOST, "secure.formula1.com").
+
+-define(dump_value(Value), error_logger:info_msg("~p:~p, ~p = ~p~n", [?MODULE, ?LINE, ??Value, Value])).
+
+%% For use in HTTP related guards.
+-define(is_success(Status), Status >= 200, Status =< 205).
+-define(is_redirection(Status), Status >= 300, Status =< 304).
+-define(is_success_or_redirection(Status), ?is_success(Status); ?is_redirection(Status)).
+
+%%----------------------------------------------------------------------------
+%% Packet types.
+
 -type payload() :: {plain | scrambled, binary()}.
 
 -type session() :: practice | qualifying | race.
@@ -9,7 +23,7 @@
                   payload :: payload() }).
 
 %%----------------------------------------------------------------------------
-%% Car packet types.
+%% Car packets.
 
 -define(POSITION_UPDATE_PACKET, 0).
 %% Types from 1 to 13 are update packets for live timing display columns.
@@ -46,7 +60,7 @@
 -define(POSITION_HISTORY_PACKET, 15).
 
 %%----------------------------------------------------------------------------
-%% System packet types.
+%% System packets.
 
 -define(EVENT_PACKET, 1).
 -define(KEYFRAME_PACKET, 2).
