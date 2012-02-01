@@ -216,7 +216,11 @@ car_packet_to_term(_Session, Car, _Type = ?DRIVER_PACKET, Payload) ->
 car_packet_to_term(_Session, Car, _Type = ?POSITION_UPDATE_PACKET, Payload) ->
     {position_update, Car, binary_to_integer(Payload)};
 car_packet_to_term(_Session, Car, _Type = ?POSITION_HISTORY_PACKET, Payload) ->
-    {position_history, Car, binary_to_list(Payload)}.
+    {position_history, Car, binary_to_list(Payload)};
+car_packet_to_term(Session, Car, Type, Payload) ->
+    error_logger:error_msg("Unknown car packet (session ~p, car ~p, type ~p, payload ~p)~n",
+                           [Session, Car, Type, Payload]),
+    undefined.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -308,7 +312,7 @@ system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?ATMOSPHERIC_PRESSURE_PA
 system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?WIND_DIRECTION_PACKET, Payload) ->
     {wind_direction, binary_to_number(Payload)};
 system_packet_to_term(_Type = ?SPEED_PACKET, _Extra, Payload) ->
-    <<Speed, Other_Bytes>> = Payload,
+    <<Speed, Other_Bytes/bytes>> = Payload,
     case Speed of
         ?SECTOR_1_SPEED_PACKET ->
             {sector_1_speed, binary_to_speeds(Other_Bytes)};
@@ -343,7 +347,11 @@ system_packet_to_term(_Type = ?SESSION_STATUS_PACKET, _Extra = ?SESSION_FLAG_PAC
         end,
     {session_status, Flag};
 system_packet_to_term(_Type = ?COPYRIGHT_PACKET, _Extra, Payload) ->
-    {copyright, Payload}.
+    {copyright, Payload};
+system_packet_to_term(Type, Extra, Payload) ->
+    error_logger:error_msg("Unknown system packet (type ~p, extra ~p, payload ~p)~n",
+                           [Type, Extra, Payload]),
+    undefined.
 
 %%--------------------------------------------------------------------
 %% @private
