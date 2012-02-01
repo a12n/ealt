@@ -5,7 +5,7 @@
 %%%
 %%% @end
 %%%-------------------------------------------------------------------
--module(ealt_extractor).
+-module(ealt_decoder).
 
 -behaviour(gen_server).
 
