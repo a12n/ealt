@@ -75,6 +75,7 @@ search_cookie() ->
     {http_cookie, ".formula1.com", _Domain_Default, _Name, Value,
      _Comment, _Max_Age, _Path, _Path_Default, _Secure, _Version} =
         lists:keyfind("USER", 4, Cookies),
+    ?dump_value(Value),
     {ok, Value}.
 
 %%--------------------------------------------------------------------
