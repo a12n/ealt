@@ -92,8 +92,6 @@ read_packet(_Bytes) ->
                            undefined | {laps, integer()} | {time, term()}.
 binary_to_gap(<<>>) ->
     undefined;
-binary_to_gap(<<"LAP">>) ->
-    undefined;
 binary_to_gap(<<L:1/bytes, $L>>) ->
     {laps, binary_to_integer(L)};
 binary_to_gap(<<L:2/bytes, $L>>) ->
@@ -184,7 +182,7 @@ car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_1_PACKET, Payload) ->
 car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_2_PACKET, Payload) ->
     {pit_lap_2, Car, Payload};                  % FIXME: pit_lap_2?
 car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_3_PACKET, Payload) ->
-    {pit_lap_3, Car, Payload};
+    {pit_lap_3, Car, Payload};                  % FIXME: pit_lap_3?
 car_packet_to_term(race, Car, _Type = ?RACE_N_PITS_PACKET, Payload) ->
     {n_pits, Car, binary_to_integer(Payload)};
 %% Practice, qualifying
