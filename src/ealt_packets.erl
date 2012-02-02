@@ -328,13 +328,13 @@ system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?WIND_DIRECTION_PACKET, 
 system_packet_to_term(_Type = ?SPEED_PACKET, _Extra, Payload) ->
     <<Speed, Other_Bytes/bytes>> = Payload,
     case Speed of
-        ?SECTOR_1_SPEED_PACKET ->
+        ?SECTOR_1_SPEEDS_PACKET ->
             {sector_1_speeds, binary_to_speeds(Other_Bytes)};
-        ?SECTOR_2_SPEED_PACKET ->
+        ?SECTOR_2_SPEEDS_PACKET ->
             {sector_2_speeds, binary_to_speeds(Other_Bytes)};
-        ?SECTOR_3_SPEED_PACKET ->
+        ?SECTOR_3_SPEEDS_PACKET ->
             {sector_3_speeds, binary_to_speeds(Other_Bytes)};
-        ?SPEED_TRAP_PACKET ->
+        ?SPEED_TRAP_SPEEDS_PACKET ->
             {speed_trap_speeds, binary_to_speeds(Other_Bytes)};
         ?FASTEST_LAP_CAR_PACKET ->
             {fastest_lap_car, binary_to_integer(Other_Bytes)};
@@ -342,8 +342,8 @@ system_packet_to_term(_Type = ?SPEED_PACKET, _Extra, Payload) ->
             {fastest_lap_driver, Other_Bytes};
         ?FASTEST_LAP_TIME_PACKET ->
             {fastest_lap_time, binary_to_time(Other_Bytes)};
-        ?FASTEST_LAP_NUMBER_PACKET ->
-            {fastest_lap_number, binary_to_integer(Other_Bytes)}
+        ?FASTEST_LAP_LAP_PACKET ->
+            {fastest_lap_lap, binary_to_integer(Other_Bytes)}
     end;
 system_packet_to_term(_Type = ?SESSION_STATUS_PACKET, _Extra = ?SESSION_FLAG_PACKET, Payload) ->
     Flag =
