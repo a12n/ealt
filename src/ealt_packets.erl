@@ -329,13 +329,13 @@ system_packet_to_term(_Type = ?SPEED_PACKET, _Extra, Payload) ->
     <<Speed, Other_Bytes/bytes>> = Payload,
     case Speed of
         ?SECTOR_1_SPEED_PACKET ->
-            {sector_1_speed, binary_to_speeds(Other_Bytes)};
+            {sector_1_speeds, binary_to_speeds(Other_Bytes)};
         ?SECTOR_2_SPEED_PACKET ->
-            {sector_2_speed, binary_to_speeds(Other_Bytes)};
+            {sector_2_speeds, binary_to_speeds(Other_Bytes)};
         ?SECTOR_3_SPEED_PACKET ->
-            {sector_3_speed, binary_to_speeds(Other_Bytes)};
+            {sector_3_speeds, binary_to_speeds(Other_Bytes)};
         ?SPEED_TRAP_PACKET ->
-            {speed_trap, binary_to_speeds(Other_Bytes)};
+            {speed_trap_speeds, binary_to_speeds(Other_Bytes)};
         ?FASTEST_LAP_CAR_PACKET ->
             {fastest_lap_car, binary_to_integer(Other_Bytes)};
         ?FASTEST_LAP_DRIVER_PACKET ->
