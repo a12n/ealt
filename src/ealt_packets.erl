@@ -159,11 +159,11 @@ car_packet_to_term(practice, Car, _Type = ?PRACTICE_BEST_TIME_PACKET, Payload) -
     {best_time, Car, binary_to_time(Payload)};
 %% Qualifying
 car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_1_PACKET, Payload) ->
-    {period_1, Car, Payload};                   % FIXME: period_1?
+    {period_1, Car, binary_to_time(Payload)};
 car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_2_PACKET, Payload) ->
-    {period_2, Car, Payload};                   % FIXME: period_2?
+    {period_2, Car, binary_to_time(Payload)};
 car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_3_PACKET, Payload) ->
-    {period_3, Car, Payload};                  % FIXME: period_3?
+    {period_3, Car, binary_to_time(Payload)};
 %% Race
 car_packet_to_term(race, Car, _Type = ?RACE_INTERVAL_PACKET, Payload) ->
     %% "The Gap & Interval column for the leading driver always shows
