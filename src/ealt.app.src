@@ -5,6 +5,6 @@
   {vsn, hg},
   {modules, []},
   {registered, []},
-  {applications, [cowboy, inets, kernel, ssl, stdlib]},
+  {applications, [cowboy, inets, kernel, stdlib]},
   {env, []},
   {mod, {ealt_app, []}}]}.

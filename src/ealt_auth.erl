@@ -10,8 +10,6 @@
 %% API
 -export([login/2]).
 
--include("ealt.hrl").
-
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -27,23 +25,21 @@
 -spec login(string(), string()) -> {ok, string()} | {error, term()} |
                                   {http_error, term()}.
 login(Email, Password) ->
-    ?dump_value({Email, Password}),
+    URL = "http://www.formula1.com/reg/login",
     Headers = [],
     Content_Type = "application/x-www-form-urlencoded",
-    Content = lists:concat(["email=", urlencoded(Email), "&password=", urlencoded(Password)]),
+    Content = lists:concat(["email=", escaped(Email), "&password=", escaped(Password)]),
     HTTP_Options = [{autoredirect, false}],
     Options = [{body_format, binary}],
-    case httpc:request(post, {login_url(), Headers, Content_Type, Content}, HTTP_Options, Options, ealt) of
-        {ok, {{_, Status_Code, _}, _, _}} when ?is_success(Status_Code) ->
+    case httpc:request(post, {URL, Headers, Content_Type, Content}, HTTP_Options, Options, ealt) of
+        {ok, {{_, Status, _}, _, _}} when Status =:= 200 ->
             {error, unathorized};
         %% Redirects to live timing host on successful authentication.
-        {ok, {{_, Status_Code, _}, _, _}} when ?is_redirection(Status_Code) ->
-            search_cookie();
+        {ok, {{_, Status, _}, _, _}} when Status =:= 302 ->
+            {ok, cookie()};
         {ok, {{_, _, Reason}, _, _}} ->
-            ?dump_value({http_error, Reason}),
             {http_error, Reason};
         {error, Reason} ->
-            ?dump_value({error, Reason}),
             {error, Reason}
     end.
 
@@ -54,29 +50,17 @@ login(Email, Password) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% URL which should be used to post credentials and retrieve authentication
-%% cookies.
-%% @end
-%%--------------------------------------------------------------------
--spec login_url() -> string().
-login_url() ->
-    lists:flatten(io_lib:format("https://~s/reg/login", [?SECURE_HOST])).
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
 %% Searches list of HTTP cookies for "USER" cookie of ".formula1.com" domain.
 %% @end
 %%--------------------------------------------------------------------
--spec search_cookie() -> {ok, string()}.
-search_cookie() ->
+-spec cookie() -> string().
+cookie() ->
     All_Cookies = httpc:which_cookies(ealt),
     {cookies, Cookies} = lists:keyfind(cookies, 1, All_Cookies),
     {http_cookie, ".formula1.com", _Domain_Default, _Name, Value,
      _Comment, _Max_Age, _Path, _Path_Default, _Secure, _Version} =
         lists:keyfind("USER", 4, Cookies),
-    ?dump_value(Value),
-    {ok, Value}.
+    Value.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -84,17 +68,17 @@ search_cookie() ->
 %% URL encode string.
 %% @end
 %%--------------------------------------------------------------------
--spec urlencoded(string()) -> string().
-urlencoded([$; | Other]) -> [$%, $3, $B | urlencoded(Other)];
-urlencoded([$/ | Other]) -> [$%, $2, $F | urlencoded(Other)];
-urlencoded([$? | Other]) -> [$%, $3, $F | urlencoded(Other)];
-urlencoded([$: | Other]) -> [$%, $3, $A | urlencoded(Other)];
-urlencoded([$@ | Other]) -> [$%, $4, $0 | urlencoded(Other)];
-urlencoded([$& | Other]) -> [$%, $2, $6 | urlencoded(Other)];
-urlencoded([$= | Other]) -> [$%, $3, $D | urlencoded(Other)];
-urlencoded([$+ | Other]) -> [$%, $2, $B | urlencoded(Other)];
-urlencoded([$$ | Other]) -> [$%, $2, $4 | urlencoded(Other)];
-urlencoded([$, | Other]) -> [$%, $2, $C | urlencoded(Other)];
-urlencoded([$  | Other]) -> [$+ | urlencoded(Other)];
-urlencoded([Char | Other]) -> [Char | urlencoded(Other)];
-urlencoded([]) -> [].
+-spec escaped(string()) -> string().
+escaped([$; | Other]) -> [$%, $3, $B | escaped(Other)];
+escaped([$/ | Other]) -> [$%, $2, $F | escaped(Other)];
+escaped([$? | Other]) -> [$%, $3, $F | escaped(Other)];
+escaped([$: | Other]) -> [$%, $3, $A | escaped(Other)];
+escaped([$@ | Other]) -> [$%, $4, $0 | escaped(Other)];
+escaped([$& | Other]) -> [$%, $2, $6 | escaped(Other)];
+escaped([$= | Other]) -> [$%, $3, $D | escaped(Other)];
+escaped([$+ | Other]) -> [$%, $2, $B | escaped(Other)];
+escaped([$$ | Other]) -> [$%, $2, $4 | escaped(Other)];
+escaped([$, | Other]) -> [$%, $2, $C | escaped(Other)];
+escaped([$  | Other]) -> [$+ | escaped(Other)];
+escaped([Char | Other]) -> [Char | escaped(Other)];
+escaped([]) -> [].

@@ -63,9 +63,9 @@ ensure_started(App) ->
 -spec start_deps() -> ok.
 start_deps() ->
     ensure_started(cowboy),
-    ensure_started(crypto),
-    ensure_started(public_key),
-    ensure_started(ssl),
+    %% ensure_started(crypto),
+    %% ensure_started(public_key),
+    %% ensure_started(ssl),
     ensure_started(inets),
     ok = httpc:set_option(cookies, enabled, ealt).
 
@@ -78,8 +78,8 @@ start_deps() ->
 -spec stop_deps() -> ok.
 stop_deps() ->
     application:stop(inets),
-    application:stop(ssl),
-    application:stop(public_key),
-    application:stop(crypto),
+    %% application:stop(ssl),
+    %% application:stop(public_key),
+    %% application:stop(crypto),
     application:stop(cowboy),
     ok.
