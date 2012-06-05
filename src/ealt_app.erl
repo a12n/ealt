@@ -58,11 +58,9 @@ get_env(Key, Default) ->
 start(_Start_Type, _Start_Args) ->
     %% Additional initialization
     ok = httpc:set_option(cookies, enabled, ealt),
-    {ok, Cookie} = ealt_auth:login(ealt_app:get_env(email),
-                                   ealt_app:get_env(password)),
     ok = ealt_websocket:create_pg(),
     %% Start supervisor
-    Result = ealt_sup:start_link(Cookie),
+    Result = ealt_sup:start_link(),
     case Result of
         {ok, _Pid} ->
             ealt_translator:add_handler();

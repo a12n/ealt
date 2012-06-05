@@ -10,7 +10,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -24,9 +24,9 @@
 %% Starts the supervisor.
 %% @end
 %%--------------------------------------------------------------------
--spec start_link(string()) -> {ok, pid()} | ignore | {error, term()}.
-start_link(Cookie) ->
-    supervisor:start_link(?MODULE, Cookie).
+-spec start_link() -> {ok, pid()} | ignore | {error, term()}.
+start_link() ->
+    supervisor:start_link(?MODULE, []).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -41,8 +41,13 @@ start_link(Cookie) ->
 %% specifications.
 %% @end
 %%--------------------------------------------------------------------
--spec init(string()) -> {ok, term()}.
-init(Cookie) ->
+-spec init(term()) -> {ok, term()}.
+init(_Args) ->
+    %% Auth service
+    Auth = {ealt_auth, {ealt_auth, start_link, [ealt_app:get_env(email),
+                                                ealt_app:get_env(password)]},
+            permanent, 5000, worker, [ealt_auth]},
+
     %% Event manager
     Events = {ealt_events, {ealt_events, start_link, []},
               permanent, 5000, worker, [ealt_events]},
@@ -59,8 +64,8 @@ init(Cookie) ->
                           cowboy_http_protocol, [{dispatch, Dispatch}]),
 
     %% Packet decoder
-    Decoder = {ealt_decoder, {ealt_decoder, start_link, [Cookie]},
+    Decoder = {ealt_decoder, {ealt_decoder, start_link, []},
                permanent, 5000, worker, [ealt_decoder]},
 
     Flags = {one_for_one, 2, 10},
-    {ok, {Flags, [Events, WebSocket, Decoder]}}.
+    {ok, {Flags, [Auth, Events, WebSocket, Decoder]}}.

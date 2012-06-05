@@ -10,7 +10,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -28,7 +28,6 @@
 -define(INITIAL_MASK, 16#55555555).
 
 -record(state, { buffer = <<>>,
-                 cookie,
                  key = 0,
                  keyframe_id,
                  mask = ?INITIAL_MASK,
@@ -45,9 +44,9 @@
 %% Starts packet extraction server in supervision tree.
 %% @end
 %%--------------------------------------------------------------------
--spec start_link(string()) -> {ok, pid()} | ignore | {error, term()}.
-start_link(Cookie) ->
-    gen_server:start_link(?MODULE, Cookie, []).
+-spec start_link() -> {ok, pid()} | ignore | {error, term()}.
+start_link() ->
+    gen_server:start_link(?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -59,11 +58,11 @@ start_link(Cookie) ->
 %% Initializes the server.
 %% @end
 %%--------------------------------------------------------------------
--spec init(string()) -> {ok, #state{}, integer()}.
-init(Cookie) ->
+-spec init(term()) -> {ok, #state{}, integer()}.
+init(_Args) ->
     Options = [binary, {packet, 0}],
     {ok, Socket} = gen_tcp:connect(?LIVE_TIMING_HOST, ?LIVE_TIMING_PORT, Options),
-    State = #state{ cookie = Cookie, socket = Socket },
+    State = #state{ socket = Socket },
     {ok, State, State#state.refresh_time}.
 
 %%--------------------------------------------------------------------
@@ -136,8 +135,8 @@ code_change(_Old_Vsn, State, _Extra) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec handle_special_packet(term(), #state{}) -> #state{}.
-handle_special_packet({event, Id, Session}, State = #state{ cookie = Cookie }) ->
-    {ok, Key} = key(Id, Cookie),
+handle_special_packet({event, Id, Session}, State) ->
+    {ok, Key} = key(Id, ealt_auth:cookie()),
     State#state{ key = Key, mask = ?INITIAL_MASK, session = Session };
 handle_special_packet({keyframe, Next_Id}, State = #state{ buffer = Buffer,
                                                            keyframe_id = Id }) ->
@@ -164,8 +163,8 @@ handle_special_packet(_Term, State) ->
 %% authentication <em>Cookie</em>.
 %% @end
 %%--------------------------------------------------------------------
--spec key(binary(), string()) -> {ok, integer()} | {error, term()} |
-                                {http_error, term()}.
+-spec key(binary(), binary()) -> {ok, integer()} | {error, term()} |
+                                 {http_error, term()}.
 key(Event_Id, Cookie) ->
     case httpc:request(key_url(Event_Id, Cookie), ealt) of
         {ok, {{_, Status, _}, _, Content}} when Status =:= 200 ->
@@ -182,7 +181,7 @@ key(Event_Id, Cookie) ->
 %% authentication <em>Cookie</em> as the parameters.
 %% @end
 %%--------------------------------------------------------------------
--spec key_url(binary(), string()) -> string().
+-spec key_url(binary(), binary()) -> string().
 key_url(Event_Id, Cookie) ->
     lists:flatten(io_lib:format("http://~s/reg/getkey/~s.asp?auth=~s",
                                 [?LIVE_TIMING_HOST, Event_Id, Cookie])).
