@@ -10,7 +10,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -24,9 +24,9 @@
 %% Starts the supervisor.
 %% @end
 %%--------------------------------------------------------------------
--spec start_link() -> {ok, pid()} | ignore | {error, term()}.
-start_link() ->
-    supervisor:start_link(?MODULE, []).
+-spec start_link(string()) -> {ok, pid()} | ignore | {error, term()}.
+start_link(Cookie) ->
+    supervisor:start_link(?MODULE, Cookie).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -41,8 +41,8 @@ start_link() ->
 %% specifications.
 %% @end
 %%--------------------------------------------------------------------
--spec init(term()) -> {ok, term()}.
-init(_Args) ->
+-spec init(string()) -> {ok, term()}.
+init(Cookie) ->
     %% Event manager
     Events = {ealt_events, {ealt_events, start_link, []},
               permanent, 5000, worker, [ealt_events]},
@@ -58,12 +58,7 @@ init(_Args) ->
                                                  {port, WebSocket_Port}],
                           cowboy_http_protocol, [{dispatch, Dispatch}]),
 
-    ealt_websocket:create_pg(),
-
-    %% External protocol extractor and decoder
-    {ok, Cookie} = ealt_auth:login(ealt_app:get_env(email),
-                                   ealt_app:get_env(password)),
-
+    %% Packet decoder
     Decoder = {ealt_decoder, {ealt_decoder, start_link, [Cookie]},
                permanent, 5000, worker, [ealt_decoder]},
 

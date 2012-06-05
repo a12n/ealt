@@ -66,8 +66,7 @@ start_deps() ->
     %% ensure_started(crypto),
     %% ensure_started(public_key),
     %% ensure_started(ssl),
-    ensure_started(inets),
-    ok = httpc:set_option(cookies, enabled, ealt).
+    ensure_started(inets).
 
 %%--------------------------------------------------------------------
 %% @private
