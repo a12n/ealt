@@ -24,7 +24,7 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% TODO
+%% Authentication cookie.
 %% @end
 %%--------------------------------------------------------------------
 -spec cookie() -> binary().
@@ -33,25 +33,32 @@ cookie() ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% TODO
+%% Starts standalone authentication server. Parameters are
+%% <em>Email</em> and <em>Password</em>.
 %% @end
 %%--------------------------------------------------------------------
+-spec start(binary(), binary()) -> {ok, pid()} | ignore |
+                                   {error, term()}.
 start(Email, Password) ->
     gen_server:start({local, ?MODULE}, ?MODULE, {Email, Password}, []).
 
 %%--------------------------------------------------------------------
 %% @doc
-%% TODO
+%% Starts supervised authentication server. Parameters are
+%% <em>Email</em> and <em>Password</em>.
 %% @end
 %%--------------------------------------------------------------------
+-spec start_link(binary(), binary()) -> {ok, pid()} | ignore |
+                                        {error, term()}.
 start_link(Email, Password) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, {Email, Password}, []).
 
 %%--------------------------------------------------------------------
 %% @doc
-%% TODO
+%% Stops standalone authentication server.
 %% @end
 %%--------------------------------------------------------------------
+-spec stop() -> ok.
 stop() ->
     gen_server:cast(?MODULE, stop).
 
@@ -62,7 +69,6 @@ stop() ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% TODO
 %% @end
 %%--------------------------------------------------------------------
 code_change(_Old_Vsn, State, _Extra) ->
@@ -71,7 +77,6 @@ code_change(_Old_Vsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% TODO
 %% @end
 %%--------------------------------------------------------------------
 handle_call(cookie, _From, State = Cookie) ->
@@ -83,7 +88,6 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% TODO
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(stop, State) ->
@@ -95,7 +99,6 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% TODO
 %% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
@@ -104,9 +107,9 @@ handle_info(_Info, State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% TODO
 %% @end
 %%--------------------------------------------------------------------
+-spec init(binary(), binary()) -> {ok, term()} | {stop, term()}.
 init({Email, Password}) ->
     URL = "http://www.formula1.com/reg/login",
     Headers = [],
@@ -133,7 +136,6 @@ init({Email, Password}) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% TODO
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
