@@ -33,7 +33,14 @@
 %%--------------------------------------------------------------------
 -spec create_pg() -> ok | {error, term()}.
 create_pg() ->
-    pg:create(?PG).
+    case pg:create(?PG) of
+        ok ->
+            ok;
+        {error, already_created} ->
+            ok;
+        _Other ->
+            _Other
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
