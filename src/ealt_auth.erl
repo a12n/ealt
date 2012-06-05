@@ -109,7 +109,7 @@ handle_info(_Info, State) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec init(binary(), binary()) -> {ok, term()} | {stop, term()}.
+-spec init({binary(), binary()}) -> {ok, term()} | {stop, term()}.
 init({Email, Password}) ->
     URL = "http://www.formula1.com/reg/login",
     Headers = [],
