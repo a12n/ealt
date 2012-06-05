@@ -43,16 +43,14 @@ start_link() ->
 %%--------------------------------------------------------------------
 -spec init(term()) -> {ok, term()}.
 init(_Args) ->
-    %% Auth service
-    Auth = {ealt_auth, {ealt_auth, start_link, [ealt_app:get_env(email),
-                                                ealt_app:get_env(password)]},
+    Email = ealt_app:get_env(email),
+    Password = ealt_app:get_env(password),
+    Auth = {ealt_auth, {ealt_auth, start_link, [Email, Password]},
             permanent, 5000, worker, [ealt_auth]},
 
-    %% Event manager
     Events = {ealt_events, {ealt_events, start_link, []},
               permanent, 5000, worker, [ealt_events]},
 
-    %% WebSocket server
     WebSocket_Address = ealt_app:get_env(websocket_address, {127, 0, 0, 1}),
     WebSocket_Port = ealt_app:get_env(websocket_port, 8642),
     WebSocket_Path = ealt_app:get_env(websocket_path, [<<"events">>]),
@@ -63,7 +61,6 @@ init(_Args) ->
                                                  {port, WebSocket_Port}],
                           cowboy_http_protocol, [{dispatch, Dispatch}]),
 
-    %% Packet decoder
     Decoder = {ealt_decoder, {ealt_decoder, start_link, []},
                permanent, 5000, worker, [ealt_decoder]},
 
