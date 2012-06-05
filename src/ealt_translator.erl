@@ -62,10 +62,10 @@ init(_Args) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_event({client_connected, _Client}, State) ->
-    %% TODO: Send current state to the client.
+    %% TODO: Format current state to JSON, send to client.
     {ok, State};
 handle_event({packet_extracted, _Packet}, State) ->
-    %% TODO: Translate and send.
+    %% TODO: Update state, format to JSON, dispatch.
     {ok, State};
 handle_event(_Event, State) ->
     {ok, State}.
