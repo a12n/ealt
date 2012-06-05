@@ -168,7 +168,7 @@ handle_special_packet(_Term, State) ->
                                 {http_error, term()}.
 key(Event_Id, Cookie) ->
     case httpc:request(key_url(Event_Id, Cookie), ealt) of
-        {ok, {{_, Status_Code, _}, _, Content}} when ?is_success(Status_Code) ->
+        {ok, {{_, Status, _}, _, Content}} when Status =:= 200 ->
             parse_key(Content);
         {ok, {{_, _, Reason}, _, _}} ->
             {http_error, Reason};
@@ -202,7 +202,7 @@ keyframe(Keyframe_Id) ->
     HTTP_Options = [],
     Options = [{body_format, binary}],
     case httpc:request(get, {keyframe_url(Keyframe_Id), Headers}, HTTP_Options, Options, ealt) of
-        {ok, {{_, Status_Code, _}, _, Content}} when ?is_success(Status_Code) ->
+        {ok, {{_, Status, _}, _, Content}} when Status =:= 200 ->
             {ok, Content};
         {ok, {{_, _, Reason}, _, _}} ->
             {http_error, Reason};
