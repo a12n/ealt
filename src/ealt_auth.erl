@@ -22,13 +22,14 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec login(string(), string()) -> {ok, string()} | {error, term()} |
-                                  {http_error, term()}.
+-spec login(binary(), binary()) -> {ok, string()} | {error, term()} |
+                                   {http_error, term()}.
 login(Email, Password) ->
     URL = "http://www.formula1.com/reg/login",
     Headers = [],
     Content_Type = "application/x-www-form-urlencoded",
-    Content = lists:concat(["email=", escaped(Email), "&password=", escaped(Password)]),
+    Content = cowboy_http:urlencoded(<<"email=", Email/bytes,
+                                       "&password=", Password/bytes>>),
     HTTP_Options = [{autoredirect, false}],
     Options = [{body_format, binary}],
     case httpc:request(post, {URL, Headers, Content_Type, Content}, HTTP_Options, Options, ealt) of
@@ -61,24 +62,3 @@ cookie() ->
      _Comment, _Max_Age, _Path, _Path_Default, _Secure, _Version} =
         lists:keyfind("USER", 4, Cookies),
     Value.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% URL encode string.
-%% @end
-%%--------------------------------------------------------------------
--spec escaped(string()) -> string().
-escaped([$; | Other]) -> [$%, $3, $B | escaped(Other)];
-escaped([$/ | Other]) -> [$%, $2, $F | escaped(Other)];
-escaped([$? | Other]) -> [$%, $3, $F | escaped(Other)];
-escaped([$: | Other]) -> [$%, $3, $A | escaped(Other)];
-escaped([$@ | Other]) -> [$%, $4, $0 | escaped(Other)];
-escaped([$& | Other]) -> [$%, $2, $6 | escaped(Other)];
-escaped([$= | Other]) -> [$%, $3, $D | escaped(Other)];
-escaped([$+ | Other]) -> [$%, $2, $B | escaped(Other)];
-escaped([$$ | Other]) -> [$%, $2, $4 | escaped(Other)];
-escaped([$, | Other]) -> [$%, $2, $C | escaped(Other)];
-escaped([$  | Other]) -> [$+ | escaped(Other)];
-escaped([Char | Other]) -> [Char | escaped(Other)];
-escaped([]) -> [].
