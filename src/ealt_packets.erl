@@ -7,6 +7,10 @@
 %%%-------------------------------------------------------------------
 -module(ealt_packets).
 
+%% Types
+-export_type([car/0, gap/0, lap_sector/0, lap_time/0,
+              qualifying_period/0, session/0, session_status/0]).
+
 %% API
 -export([descramble_packet/3, packet_to_term/1, packet_to_term/2,
          read_packet/1]).
@@ -14,6 +18,26 @@
 -import(ealt_utils, [binary_to_integer/1, binary_to_number/1]).
 
 -include("ealt.hrl").
+
+%%%===================================================================
+%%% Types
+%%%===================================================================
+
+-type car() :: non_neg_integer().
+
+-type gap() :: {time, lap_time()} | {laps, pos_integer()}.
+
+-type lap_sector() :: 1..3.
+
+-type lap_time() ::
+        {non_neg_integer(), non_neg_integer(), non_neg_integer()}.
+
+-type qualifying_period() :: 1..3.
+
+-type session() :: practice | qualifying | race.
+
+-type session_status() ::
+        green_flag | yellow_flag | scs | scd | red_flag.
 
 %%%===================================================================
 %%% API
