@@ -1,7 +1,6 @@
 
 -define(LIVE_TIMING_HOST, "live-timing.formula1.com").
 -define(LIVE_TIMING_PORT, 4321).
--define(SECURE_HOST, "secure.formula1.com").
 
 -define(dump_value(Value), error_logger:info_msg("~p:~p, ~p = ~p~n", [?MODULE, ?LINE, ??Value, Value])).
 
