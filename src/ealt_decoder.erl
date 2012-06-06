@@ -166,7 +166,9 @@ handle_special_packet(_Term, State) ->
 -spec key(binary(), binary()) -> {ok, integer()} | {error, term()} |
                                  {http_error, term()}.
 key(Event_Id, Cookie) ->
-    case httpc:request(key_url(Event_Id, Cookie), ealt) of
+    URL = io_lib:format("http://~s/reg/getkey/~s.asp?auth=~s",
+                        [?LIVE_TIMING_HOST, Event_Id, Cookie]),
+    case httpc:request(lists:flatten(URL), ealt) of
         {ok, {{_, Status, _}, _, Content}} when Status =:= 200 ->
             parse_key(Content);
         {ok, {{_, _, Reason}, _, _}} ->
@@ -174,17 +176,6 @@ key(Event_Id, Cookie) ->
         {error, Reason} ->
             {error, Reason}
     end.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% URL to retrieve event encryption key. Requires <em>Event_Id</em> and
-%% authentication <em>Cookie</em> as the parameters.
-%% @end
-%%--------------------------------------------------------------------
--spec key_url(binary(), binary()) -> string().
-key_url(Event_Id, Cookie) ->
-    lists:flatten(io_lib:format("http://~s/reg/getkey/~s.asp?auth=~s",
-                                [?LIVE_TIMING_HOST, Event_Id, Cookie])).
 
 %%--------------------------------------------------------------------
 %% @private
