@@ -9,7 +9,7 @@
 
 %% API
 -export([add_handler/2, client_connected/1, delete_handler/2,
-         packet_extracted/1, start_link/0]).
+         message_decoded/1, start_link/0]).
 
 %%%===================================================================
 %%% API
@@ -49,9 +49,9 @@ delete_handler(Handler, Args) ->
 %% Notify packet handlers about extracted packet.
 %% @end
 %%--------------------------------------------------------------------
--spec packet_extracted(term()) -> ok.
-packet_extracted(Packet) ->
-    gen_event:notify(?MODULE, {packet_extracted, Packet}).
+-spec message_decoded(ealt_messages:message()) -> ok.
+message_decoded(Message) ->
+    gen_event:notify(?MODULE, {message_decoded, Message}).
 
 %%--------------------------------------------------------------------
 %% @doc
