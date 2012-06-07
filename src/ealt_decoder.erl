@@ -18,7 +18,8 @@
 
 -import(ealt_utils, [bounded/3]).
 
--include("ealt.hrl").
+-define(LIVE_TIMING_HOST, "live-timing.formula1.com").
+-define(LIVE_TIMING_PORT, 4321).
 
 -define(MIN_REFRESH_TIME, 1000).
 -define(MAX_REFRESH_TIME, 120000).
@@ -61,7 +62,8 @@ start_link() ->
 -spec init(term()) -> {ok, #state{}, integer()}.
 init(_Args) ->
     Options = [binary, {packet, 0}],
-    {ok, Socket} = gen_tcp:connect(?LIVE_TIMING_HOST, ?LIVE_TIMING_PORT, Options),
+    {ok, Socket} = gen_tcp:connect(?LIVE_TIMING_HOST,
+                                   ?LIVE_TIMING_PORT, Options),
     State = #state{ socket = Socket },
     {ok, State, State#state.refresh_time}.
 
@@ -92,12 +94,15 @@ handle_cast(_Msg, State) ->
 handle_info({tcp, _Socket, Bytes}, State = #state{ buffer = Buffer }) ->
     Next_State = read_packets(State#state{ buffer = <<Buffer/bytes, Bytes/bytes>> }),
     {noreply, Next_State, Next_State#state.refresh_time};
+
 handle_info({tcp_closed, _Socket}, State) ->
     error_logger:error_msg("Server closed connection~n"),
     {stop, tcp_closed, State};
+
 handle_info({tcp_error, Reason}, State) ->
     error_logger:error_msg("Server connection error, reason ~p~n", [Reason]),
     {stop, tcp_error, State};
+
 handle_info(timeout, State = #state{ refresh_time = Timeout, socket = Socket }) ->
     ok = gen_tcp:send(Socket, ?PING_PACKET),
     {noreply, State, Timeout}.
@@ -134,25 +139,30 @@ code_change(_Old_Vsn, State, _Extra) ->
 %% <em>State</em> accordingly.
 %% @end
 %%--------------------------------------------------------------------
--spec handle_special_packet(term(), #state{}) -> #state{}.
+-spec handle_special_packet(ealt_messages:message(), #state{}) ->
+                                   #state{}.
 handle_special_packet({event, Id, Session}, State) ->
-    {ok, Key} = key(Id, ealt_auth:cookie()),
+    Cookie = ealt_auth:cookie(),
+    Key = key(Id, Cookie),
     State#state{ key = Key, mask = ?INITIAL_MASK, session = Session };
+
 handle_special_packet({keyframe, Next_Id}, State = #state{ buffer = Buffer,
                                                            keyframe_id = Id }) ->
     %% TODO: Reset mask on new keyframe?
     case Id of
         undefined ->
-            {ok, Keyframe_Bytes} = keyframe(Next_Id),
+            Keyframe_Bytes = keyframe(Next_Id),
             State#state{ buffer = <<Keyframe_Bytes/bytes, Buffer/bytes>>,
                          keyframe_id = Next_Id };
         _Other ->
             State#state{ keyframe_id = Next_Id }
     end;
+
 handle_special_packet({refresh_time, Time}, State) ->
     Next_Refresh_Time =
         bounded(Time * 1000, ?MIN_REFRESH_TIME, ?MAX_REFRESH_TIME),
     State#state{ refresh_time = Next_Refresh_Time };
+
 handle_special_packet(_Term, State) ->
     State.
 
@@ -163,18 +173,13 @@ handle_special_packet(_Term, State) ->
 %% authentication <em>Cookie</em>.
 %% @end
 %%--------------------------------------------------------------------
--spec key(binary(), binary()) -> {ok, integer()} | {error, term()} |
-                                 {http_error, term()}.
+-spec key(binary(), binary()) -> integer().
 key(Event_Id, Cookie) ->
     URL = io_lib:format("http://~s/reg/getkey/~s.asp?auth=~s",
                         [?LIVE_TIMING_HOST, Event_Id, Cookie]),
     case httpc:request(lists:flatten(URL), ealt) of
         {ok, {{_, Status, _}, _, Content}} when Status =:= 200 ->
-            parse_key(Content);
-        {ok, {{_, _, Reason}, _, _}} ->
-            {http_error, Reason};
-        {error, Reason} ->
-            {error, Reason}
+            list_to_integer(Content, 16)
     end.
 
 %%--------------------------------------------------------------------
@@ -185,19 +190,16 @@ key(Event_Id, Cookie) ->
 %% packet.
 %% @end
 %%--------------------------------------------------------------------
--spec keyframe(non_neg_integer()) -> {ok, binary()} | {error, term()} |
-                                    {http_error, term()}.
+-spec keyframe(non_neg_integer()) -> binary().
 keyframe(Keyframe_Id) ->
+    URL = keyframe_url(Keyframe_Id),
     Headers = [],
     HTTP_Options = [],
     Options = [{body_format, binary}],
-    case httpc:request(get, {keyframe_url(Keyframe_Id), Headers}, HTTP_Options, Options, ealt) of
+    case httpc:request(get, {lists:flatten(URL), Headers},
+                       HTTP_Options, Options, ealt) of
         {ok, {{_, Status, _}, _, Content}} when Status =:= 200 ->
-            {ok, Content};
-        {ok, {{_, _, Reason}, _, _}} ->
-            {http_error, Reason};
-        {error, Reason} ->
-            {error, Reason}
+            Content
     end.
 
 %%--------------------------------------------------------------------
@@ -209,27 +211,13 @@ keyframe(Keyframe_Id) ->
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec keyframe_url(non_neg_integer()) -> string().
+-spec keyframe_url(non_neg_integer()) -> io_lib:chars().
 keyframe_url(0) ->
-    lists:flatten(io_lib:format("http://~s/keyframe.bin", [?LIVE_TIMING_HOST]));
-keyframe_url(Keyframe_Id) ->
-    lists:flatten(io_lib:format("http://~s/keyframe_~5..0B.bin",
-                                [?LIVE_TIMING_HOST, Keyframe_Id])).
+    io_lib:format("http://~s/keyframe.bin", [?LIVE_TIMING_HOST]);
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Parses key representation <em>Str</em> as integer key.
-%% @end
-%%--------------------------------------------------------------------
--spec parse_key(string()) -> {ok, integer()} | {error, term()}.
-parse_key(Str) ->
-    try
-        {ok, list_to_integer(Str, 16)}
-    catch
-        error : badarg ->
-            {error, invalid_key}
-    end.
+keyframe_url(Keyframe_Id) ->
+    io_lib:format("http://~s/keyframe_~5..0B.bin",
+                  [?LIVE_TIMING_HOST, Keyframe_Id]).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -247,13 +235,18 @@ read_packets(State = #state{ buffer = Buffer,
             {Packet, Next_Mask} =
                 ealt_packets:descramble_packet(Scrambled_Packet, Key,
                                                Mask),
-            Packet_Term =
-                ealt_packets:packet_to_term(Session, Packet),
-            ?dump_value({Scrambled_Packet, Packet, Packet_Term}),
-            %% TODO: Do not dispatch packet term if it's undefined.
-            ealt_events:packet_extracted(Packet_Term),
+            Message =
+                ealt_messages:packet_to_message(Session, Packet),
+            io:format("Scrambled packet ~p~nPacket ~p~nMessage ~p~n~n",
+                      [Scrambled_Packet, Packet, Message]),
+            case Message of
+                undefined ->
+                    ok;
+                _Other ->
+                    ealt_events:message_decoded(Message)
+            end,
             Next_State =
-                handle_special_packet(Packet_Term,
+                handle_special_packet(Message,
                                       State#state{ buffer = Next_Buffer,
                                                    mask = Next_Mask }),
             read_packets(Next_State);
