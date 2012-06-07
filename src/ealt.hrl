@@ -1,19 +1,3 @@
-
--define(LIVE_TIMING_HOST, "live-timing.formula1.com").
--define(LIVE_TIMING_PORT, 4321).
-
--define(dump_value(Value), error_logger:info_msg("~p:~p, ~p = ~p~n", [?MODULE, ?LINE, ??Value, Value])).
-
-%%----------------------------------------------------------------------------
-%% Packet types.
-
--type payload() :: {plain | scrambled, binary()}.
-
--record(packet, { car     :: integer(),
-                  type    :: integer(),
-                  extra   :: integer(),
-                  payload :: payload() }).
-
 %%----------------------------------------------------------------------------
 %% Car packets.
 
@@ -41,9 +25,9 @@
 -define(PRACTICE_SECTOR_3_TIME_PACKET, 8).
 -define(PRACTICE_LAP_PACKET, 9).
 %% Qualifying
--define(QUALIFYING_PERIOD_1_PACKET, 4).
--define(QUALIFYING_PERIOD_2_PACKET, 5).
--define(QUALIFYING_PERIOD_3_PACKET, 6).
+-define(QUALIFYING_PERIOD_1_TIME_PACKET, 4).
+-define(QUALIFYING_PERIOD_2_TIME_PACKET, 5).
+-define(QUALIFYING_PERIOD_3_TIME_PACKET, 6).
 -define(QUALIFYING_SECTOR_1_TIME_PACKET, 7).
 -define(QUALIFYING_SECTOR_2_TIME_PACKET, 8).
 -define(QUALIFYING_SECTOR_3_TIME_PACKET, 9).
@@ -82,10 +66,10 @@
 -define(WIND_DIRECTION_PACKET, 7).
 
 %% Sub-types of the SPEED_PACKET (first byte of payload).
--define(SECTOR_1_SPEEDS_PACKET, 1).
--define(SECTOR_2_SPEEDS_PACKET, 2).
--define(SECTOR_3_SPEEDS_PACKET, 3).
--define(SPEED_TRAP_SPEEDS_PACKET, 4).
+-define(SECTOR_1_SPEED_PACKET, 1).
+-define(SECTOR_2_SPEED_PACKET, 2).
+-define(SECTOR_3_SPEED_PACKET, 3).
+-define(SPEED_TRAP_PACKET, 4).
 -define(FASTEST_LAP_CAR_PACKET, 5).
 -define(FASTEST_LAP_DRIVER_PACKET, 6).
 -define(FASTEST_LAP_TIME_PACKET, 7).
@@ -97,6 +81,6 @@
 %% Payload values for SESSION_FLAG_PACKET.
 -define(GREEN_FLAG, 1).
 -define(YELLOW_FLAG, 2).
--define(SAFETY_CAR_STAND_BY, 3).
--define(SAFETY_CAR_DEPLOYED, 4).
+-define(SCS, 3).
+-define(SCD, 4).
 -define(RED_FLAG, 5).

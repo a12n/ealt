@@ -8,14 +8,10 @@
 -module(ealt_packets).
 
 %% Types
--export_type([car/0, gap/0, lap_sector/0, lap_time/0,
-              qualifying_period/0, session/0, session_status/0]).
+-export_type([packet/0, payload/0]).
 
 %% API
--export([descramble_packet/3, packet_to_term/1, packet_to_term/2,
-         read_packet/1]).
-
--import(ealt_utils, [binary_to_integer/1, binary_to_number/1]).
+-export([descramble_packet/3, read_packet/1]).
 
 -include("ealt.hrl").
 
@@ -23,21 +19,9 @@
 %%% Types
 %%%===================================================================
 
--type car() :: non_neg_integer().
+-type packet() :: {ealt_messages:car(), integer(), integer(), payload()}.
 
--type gap() :: {time, lap_time()} | {laps, pos_integer()}.
-
--type lap_sector() :: 1..3.
-
--type lap_time() ::
-        {non_neg_integer(), non_neg_integer(), non_neg_integer()}.
-
--type qualifying_period() :: 1..3.
-
--type session() :: practice | qualifying | race.
-
--type session_status() ::
-        green_flag | yellow_flag | scs | scd | red_flag.
+-type payload() :: {plain | scrambled, binary()}.
 
 %%%===================================================================
 %%% API
@@ -48,217 +32,32 @@
 %% Decrypt scrambled <em>Packet</em>.
 %% @end
 %%--------------------------------------------------------------------
--spec descramble_packet(#packet{}, integer(), integer()) ->
-                               {#packet{}, integer()}.
-descramble_packet(Packet = #packet{ payload = {scrambled, Scrambled} },
-                  Key, Mask) ->
+-spec descramble_packet(packet(), integer(), integer()) ->
+                               {packet(), integer()}.
+descramble_packet({Car, Type, Extra, {scrambled, Scrambled}}, Key, Mask) ->
     {Plain, Next_Mask} = descramble_payload(Scrambled, Key, Mask),
-    {Packet#packet{ payload = {plain, Plain} }, Next_Mask};
-descramble_packet(Packet, _Key, Mask) ->
-    {Packet, Mask}.
+    {{Car, Type, Extra, {plain, Plain}}, Next_Mask};
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Convert <em>Packet</em> to Erlang term of packet's internal
-%% representation.
-%% @end
-%%--------------------------------------------------------------------
--spec packet_to_term(#packet{}) -> term().
-packet_to_term(Packet) ->
-    packet_to_term(undefined, Packet).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Convert <em>Packet</em> to Erlang term of packet's internal
-%% representation.
-%%
-%% Car packet payload may be different for practice, qualifying and race
-%% sessions. <em>Session</em> parameter is required for
-%% differentiation.
-%% @end
-%%--------------------------------------------------------------------
--spec packet_to_term(session() | undefined, #packet{}) -> term().
-packet_to_term(Session, #packet{ car = Car,
-                                 type = Type,
-                                 extra = Extra,
-                                 payload = {plain, Payload} }) ->
-    if Car =/= 0 ->
-            car_packet_to_term(Session, Car, Type, Payload);
-       true ->
-            system_packet_to_term(Type, Extra, Payload)
-    end.
+descramble_packet({Car, Type, Extra, {plain, Plain}}, _Key, Mask) ->
+    {{Car, Type, Extra, {plain, Plain}}, Mask}.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec read_packet(binary()) -> {ok, #packet{}, binary()} |
-                              {more, integer() | undefined} |
-                              {error, term()}.
-read_packet(<<Type_1:3, Car:5, Extra:7, Type_2:1, Other/bytes>>) ->
+-spec read_packet(binary()) -> {ok, packet(), binary()} |
+                               {more, integer() | undefined}.
+read_packet(<<Type_1:3, Car:5, Extra:7, Type_2:1, Payload/bytes>>) ->
     Type = Type_1 bor (Type_2 bsl 3),
-    read_packet(Car, Type, Extra, Other);
+    read_packet(Car, Type, Extra, Payload);
+
 read_packet(_Bytes) ->
     {more, undefined}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% TODO
-%% @end
-%%--------------------------------------------------------------------
--spec binary_to_gap(binary()) ->
-                           undefined | {laps, integer()} | {time, term()}.
-binary_to_gap(<<>>) ->
-    undefined;
-binary_to_gap(<<L:1/bytes, $L>>) ->
-    {laps, binary_to_integer(L)};
-binary_to_gap(<<L:2/bytes, $L>>) ->
-    {laps, binary_to_integer(L)};
-binary_to_gap(Binary) ->
-    {time, binary_to_time(Binary)}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% TODO
-%% @end
-%%--------------------------------------------------------------------
--spec binary_to_speeds(binary()) -> [{binary(), integer()}].
-binary_to_speeds(Binary) ->
-    List = binary_to_list(Binary),
-    Tokens = string:tokens(List, [$\r]),
-    Pairs = ealt_utils:zip1(Tokens),
-    lists:map(fun({Driver, Speed}) ->
-                      {list_to_binary(Driver), list_to_integer(Speed)}
-              end, Pairs).
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% TODO
-%% @end
-%%--------------------------------------------------------------------
--spec binary_to_time(binary()) -> undefined | retired | stop |
-                                 {integer(), integer(), integer()}.
-binary_to_time(<<>>) ->
-    undefined;
-binary_to_time(<<"RETIRED">>) ->
-    retired;
-binary_to_time(<<"STOP">>) ->
-    stop;
-binary_to_time(<<M:1/bytes, $:, S:2/bytes, $., Z:3/bytes>>) ->
-    %% M:SS.ZZZ format
-    {binary_to_integer(M), binary_to_integer(S), binary_to_integer(Z)};
-binary_to_time(<<S:2/bytes, $., Z:1/bytes>>) ->
-    %% SS.Z format
-    {0, binary_to_integer(S), binary_to_integer(Z)};
-binary_to_time(<<S:1/bytes, $., Z:1/bytes>>) ->
-    %% S.Z format
-    {0, binary_to_integer(S), binary_to_integer(Z)};
-binary_to_time(<<M:2/bytes, $:, S:2/bytes>>) ->
-    %% MM:SS format
-    {binary_to_integer(M), binary_to_integer(S), 0};
-binary_to_time(<<M:1/bytes, $:, S:2/bytes>>) ->
-    %% M:SS format
-    {binary_to_integer(M), binary_to_integer(S), 0}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% TODO
-%% @end
-%%--------------------------------------------------------------------
--spec car_packet_to_term(session() | undefined,
-                         integer(),
-                         integer(),
-                         binary()) -> term().
-%% Practice
-car_packet_to_term(practice, Car, _Type = ?PRACTICE_BEST_TIME_PACKET, Payload) ->
-    {best_time, Car, binary_to_time(Payload)};
-%% Qualifying
-car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_1_PACKET, Payload) ->
-    {period_1, Car, binary_to_time(Payload)};
-car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_2_PACKET, Payload) ->
-    {period_2, Car, binary_to_time(Payload)};
-car_packet_to_term(qualifying, Car, _Type = ?QUALIFYING_PERIOD_3_PACKET, Payload) ->
-    {period_3, Car, binary_to_time(Payload)};
-%% Race
-car_packet_to_term(race, Car, _Type = ?RACE_INTERVAL_PACKET, Payload) ->
-    %% "The Gap & Interval column for the leading driver always shows
-    %% the number of laps completed, rather than the Gap and Interval
-    %% information for that driver."
-    case binary_to_integer(Payload) of
-        undefined ->
-            {interval, Car, binary_to_gap(Payload)};
-        Lap ->
-            {lap, Car, Lap}
-    end;
-car_packet_to_term(race, Car, _Type = ?RACE_LAP_TIME_PACKET, Payload) ->
-    {lap_time, Car, binary_to_time(Payload)};
-car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_1_PACKET, Payload) ->
-    {pit_lap_1, Car, Payload};                  % FIXME: pit_lap_1?
-car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_2_PACKET, Payload) ->
-    {pit_lap_2, Car, Payload};                  % FIXME: pit_lap_2?
-car_packet_to_term(race, Car, _Type = ?RACE_PIT_LAP_3_PACKET, Payload) ->
-    {pit_lap_3, Car, Payload};                  % FIXME: pit_lap_3?
-car_packet_to_term(race, Car, _Type = ?RACE_N_PITS_PACKET, Payload) ->
-    {n_pits, Car, binary_to_integer(Payload)};
-%% Practice, qualifying
-car_packet_to_term(Session, Car, Type, Payload)
-  when ((Session =:= practice) and (Type =:= ?PRACTICE_LAP_PACKET)) or
-       ((Session =:= qualifying) and (Type =:= ?QUALIFYING_LAP_PACKET)) ->
-    {lap, Car, binary_to_integer(Payload)};
-%% Practice, race
-car_packet_to_term(Session, Car, Type, Payload)
-  when ((Session =:= practice) and (Type =:= ?PRACTICE_GAP_PACKET)) or
-       ((Session =:= race) and (Type =:= ?RACE_GAP_PACKET)) ->
-    case Payload of
-        <<"LAP">> ->
-            %% "The Gap & Interval column for the leading driver always shows
-            %% the number of laps completed, rather than the Gap and Interval
-            %% information for that driver."
-            undefined;
-        _Other ->
-            {gap, Car, binary_to_gap(Payload)}
-    end;
-%% Practice, qualifying, race
-car_packet_to_term(Session, Car, Type, Payload)
-  when ((Session =:= practice) and (Type =:= ?PRACTICE_SECTOR_1_TIME_PACKET)) or
-       ((Session =:= qualifying) and (Type =:= ?QUALIFYING_SECTOR_1_TIME_PACKET)) or
-       ((Session =:= race) and (Type =:= ?RACE_SECTOR_1_TIME_PACKET)) ->
-    {sector_1_time, Car, binary_to_time(Payload)};
-car_packet_to_term(Session, Car, Type, Payload)
-  when ((Session =:= practice) and (Type =:= ?PRACTICE_SECTOR_2_TIME_PACKET)) or
-       ((Session =:= qualifying) and (Type =:= ?QUALIFYING_SECTOR_2_TIME_PACKET)) or
-       ((Session =:= race) and (Type =:= ?RACE_SECTOR_2_TIME_PACKET)) ->
-    {sector_2_time, Car, binary_to_time(Payload)};
-car_packet_to_term(Session, Car, Type, Payload)
-  when ((Session =:= practice) and (Type =:= ?PRACTICE_SECTOR_3_TIME_PACKET)) or
-       ((Session =:= qualifying) and (Type =:= ?QUALIFYING_SECTOR_3_TIME_PACKET)) or
-       ((Session =:= race) and (Type =:= ?RACE_SECTOR_3_TIME_PACKET)) ->
-    {sector_3_time, Car, binary_to_time(Payload)};
-%% Practice, qualifying, race
-car_packet_to_term(_Session, Car, _Type = ?POSITION_PACKET, Payload) ->
-    {position, Car, binary_to_integer(Payload)};
-car_packet_to_term(_Session, Car, _Type = ?NUMBER_PACKET, Payload) ->
-    {number, Car, binary_to_integer(Payload)};
-car_packet_to_term(_Session, Car, _Type = ?DRIVER_PACKET, Payload) ->
-    {driver, Car, Payload};
-%% Other
-car_packet_to_term(_Session, Car, _Type = ?POSITION_UPDATE_PACKET, Payload) ->
-    {position_update, Car, binary_to_integer(Payload)};
-car_packet_to_term(_Session, Car, _Type = ?POSITION_HISTORY_PACKET, Payload) ->
-    {position_history, Car, binary_to_list(Payload)};
-car_packet_to_term(Session, Car, Type, Payload) ->
-    error_logger:error_msg("Unknown car packet (session ~p, car ~p, type ~p, payload ~p)~n",
-                           [Session, Car, Type, Payload]),
-    undefined.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -282,6 +81,7 @@ descramble_payload(Bytes, Key, Mask) ->
                                 {binary(), integer()}.
 descramble_payload(Decr, <<>>, _Key, Mask) ->
     {Decr, Mask};
+
 descramble_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
     Next_Mask = ((Mask bsr 1) bxor (Mask band 1) * Key) band 16#ffffffff,
     Byte = Encr_Byte bxor (Next_Mask band 16#ff),
@@ -294,137 +94,47 @@ descramble_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec system_packet_to_term(integer(),
-                            integer() | undefined,
-                            binary()) -> term().
-system_packet_to_term(_Type = ?EVENT_PACKET, Extra, Payload) ->
-    Session =
-        case Extra of
-            ?PRACTICE_EVENT ->
-                practice;
-            ?QUALIFYING_EVENT ->
-                qualifying;
-            ?RACE_EVENT ->
-                race
-        end,
-    <<_Unknown, Id/bytes>> = Payload,
-    {event, Id, Session};
-system_packet_to_term(_Type = ?KEYFRAME_PACKET, _Extra, Payload) ->
-    <<Id:16/little>> = Payload,
-    {keyframe, Id};
-system_packet_to_term(_Type = ?MARKER_PACKET, Extra, _Payload) ->
-    {marker, Extra =:= 1};
-system_packet_to_term(_Type = ?COMMENTARY_PACKET, _Extra, Payload) ->
-    <<Char, _Unknown:6, Charset_Bit:1, Flush_Bit:1, Other_Bytes/bytes>> = Payload,
-    if Char >= 32 ->
-            {commentary, latin1, true, Payload};
-       true ->
-            Charset =
-                case Charset_Bit of
-                    0 -> utf8;
-                    1 -> {utf16, little}
-                end,
-            {commentary, Charset, Flush_Bit =:= 1, Other_Bytes}
-    end;
-system_packet_to_term(_Type = ?REFRESH_TIME_PACKET, Extra, _Payload) ->
-    {refresh_time, Extra};
-system_packet_to_term(_Type = ?NOTICE_PACKET, _Extra, Payload) ->
-    {notice, Payload};
-system_packet_to_term(_Type = ?TIMESTAMP_PACKET, Extra, Payload) ->
-    <<Low:16/little>> = Payload,
-    {timestamp, (Extra bsl 16) bor Low};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?SESSION_CLOCK_PACKET, Payload) ->
-    {session_clock, binary_to_time(Payload)};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?TRACK_TEMPERATURE_PACKET, Payload) ->
-    {track_temperature, binary_to_number(Payload)};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?AIR_TEMPERATURE_PACKET, Payload) ->
-    {air_temperature, binary_to_number(Payload)};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?WET_TRACK_PACKET, Payload) ->
-    {wet_track, Payload =:= <<"1">>};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?WIND_SPEED_PACKET, Payload) ->
-    {wind_speed, binary_to_number(Payload)};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?RELATIVE_HUMIDITY_PACKET, Payload) ->
-    {relative_humidity, binary_to_number(Payload)};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?ATMOSPHERIC_PRESSURE_PACKET, Payload) ->
-    {atmospheric_pressure, binary_to_number(Payload)};
-system_packet_to_term(_Type = ?WEATHER_PACKET, _Extra = ?WIND_DIRECTION_PACKET, Payload) ->
-    {wind_direction, binary_to_number(Payload)};
-system_packet_to_term(_Type = ?SPEED_PACKET, _Extra, Payload) ->
-    <<Speed, Other_Bytes/bytes>> = Payload,
-    case Speed of
-        ?SECTOR_1_SPEEDS_PACKET ->
-            {sector_1_speeds, binary_to_speeds(Other_Bytes)};
-        ?SECTOR_2_SPEEDS_PACKET ->
-            {sector_2_speeds, binary_to_speeds(Other_Bytes)};
-        ?SECTOR_3_SPEEDS_PACKET ->
-            {sector_3_speeds, binary_to_speeds(Other_Bytes)};
-        ?SPEED_TRAP_SPEEDS_PACKET ->
-            {speed_trap_speeds, binary_to_speeds(Other_Bytes)};
-        ?FASTEST_LAP_CAR_PACKET ->
-            {fastest_lap_car, binary_to_integer(Other_Bytes)};
-        ?FASTEST_LAP_DRIVER_PACKET ->
-            {fastest_lap_driver, Other_Bytes};
-        ?FASTEST_LAP_TIME_PACKET ->
-            {fastest_lap_time, binary_to_time(Other_Bytes)};
-        ?FASTEST_LAP_LAP_PACKET ->
-            {fastest_lap_lap, binary_to_integer(Other_Bytes)}
-    end;
-system_packet_to_term(_Type = ?SESSION_STATUS_PACKET, _Extra = ?SESSION_FLAG_PACKET, Payload) ->
-    Flag =
-        case binary_to_integer(Payload) of
-            ?GREEN_FLAG ->
-                green_flag;
-            ?YELLOW_FLAG ->
-                yellow_flag;
-            ?SAFETY_CAR_STAND_BY ->
-                safety_car_stand_by;
-            ?SAFETY_CAR_DEPLOYED ->
-                safety_car_deployed;
-            ?RED_FLAG ->
-                red_flag
-        end,
-    {session_status, Flag};
-system_packet_to_term(_Type = ?COPYRIGHT_PACKET, _Extra, Payload) ->
-    {copyright, Payload};
-system_packet_to_term(Type, Extra, Payload) ->
-    error_logger:error_msg("Unknown system packet (type ~p, extra ~p, payload ~p)~n",
-                           [Type, Extra, Payload]),
-    undefined.
+-spec payload_kind(ealt_messages:car(), integer()) ->
+                          {plain | scrambled, long | short | zero}.
+payload_kind(0, ?EVENT_PACKET) ->
+    {plain, short};
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% TODO
-%% @end
-%%--------------------------------------------------------------------
--spec payload_kind(integer(), integer()) -> {plain | scrambled,
-                                            long | short | zero}.
-payload_kind(_Car = 0, _Type = ?EVENT_PACKET) ->
+payload_kind(0, ?KEYFRAME_PACKET) ->
     {plain, short};
-payload_kind(_Car = 0, _Type = ?KEYFRAME_PACKET) ->
-    {plain, short};
-payload_kind(_Car = 0, _Type = ?MARKER_PACKET) ->
+
+payload_kind(0, ?MARKER_PACKET) ->
     {plain, zero};
-payload_kind(_Car = 0, _Type = ?COMMENTARY_PACKET) ->
+
+payload_kind(0, ?COMMENTARY_PACKET) ->
     {scrambled, long};
-payload_kind(_Car = 0, _Type = ?REFRESH_TIME_PACKET) ->
+
+payload_kind(0, ?REFRESH_TIME_PACKET) ->
     {plain, zero};
-payload_kind(_Car = 0, _Type = ?NOTICE_PACKET) ->
+
+payload_kind(0, ?NOTICE_PACKET) ->
     {scrambled, long};
-payload_kind(_Car = 0, _Type = ?TIMESTAMP_PACKET) ->
+
+payload_kind(0, ?TIMESTAMP_PACKET) ->
     {scrambled, long};
-payload_kind(_Car = 0, _Type = ?WEATHER_PACKET) ->
+
+payload_kind(0, ?WEATHER_PACKET) ->
     {scrambled, short};
-payload_kind(_Car = 0, _Type = ?SPEED_PACKET) ->
+
+payload_kind(0, ?SPEED_PACKET) ->
     {scrambled, long};
-payload_kind(_Car = 0, _Type = ?SESSION_STATUS_PACKET) ->
+
+payload_kind(0, ?SESSION_STATUS_PACKET) ->
     {scrambled, short};
-payload_kind(_Car = 0, _Type = ?COPYRIGHT_PACKET) ->
+
+payload_kind(0, ?COPYRIGHT_PACKET) ->
     {plain, long};
-payload_kind(Car, _Type = ?POSITION_UPDATE_PACKET) when Car > 0 ->
+
+payload_kind(Car, ?POSITION_UPDATE_PACKET) when Car > 0 ->
     {plain, zero};
-payload_kind(Car, _Type = ?POSITION_HISTORY_PACKET) when Car > 0 ->
+
+payload_kind(Car, ?POSITION_HISTORY_PACKET) when Car > 0 ->
     {scrambled, long};
+
 payload_kind(Car, Type) when Car > 0, Type >= 1, Type =< 13 ->
     {scrambled, short}.
 
@@ -437,26 +147,24 @@ payload_kind(Car, Type) when Car > 0, Type >= 1, Type =< 13 ->
 %% packets.
 %% @end
 %%--------------------------------------------------------------------
+-spec read_packet(ealt_messages:car(), integer(), integer(), binary()) ->
+                         {ok, packet(), binary()} |
+                         {more, integer() | undefined}.
 read_packet(Car = 0, Type = ?TIMESTAMP_PACKET, Extra, Bytes) ->
     {Scrambled, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, 2, Bytes) of
         {ok, _Data, Payload, Other_Bytes} ->
-            Packet = #packet{ car = Car,
-                              type = Type,
-                              extra = Extra,
-                              payload = {Scrambled, Payload} },
+            Packet = {Car, Type, Extra, {Scrambled, Payload}},
             {ok, Packet, Other_Bytes};
         Other ->
             Other
     end;
+
 read_packet(Car, Type, Extra, Bytes) ->
     {Scrambled, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, Extra, Bytes) of
         {ok, Data, Payload, Other_Bytes} ->
-            Packet = #packet{ car = Car,
-                              type = Type,
-                              extra = Data,
-                              payload = {Scrambled, Payload} },
+            Packet = {Car, Type, Data, {Scrambled, Payload}},
             {ok, Packet, Other_Bytes};
         Other ->
             Other
@@ -491,6 +199,7 @@ read_payload(long, Extra, Bytes) ->
         _Other ->
             {more, undefined}
     end;
+
 read_payload(short, Extra, Bytes) ->
     Data = Extra band 2#111,
     Length = Extra bsr 3,
@@ -505,5 +214,6 @@ read_payload(short, Extra, Bytes) ->
                     {more, undefined}
             end
     end;
+
 read_payload(zero, Extra, Bytes) ->
     {ok, Extra, <<>>, Bytes}.
