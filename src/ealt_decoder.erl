@@ -139,15 +139,14 @@ code_change(_Old_Vsn, State, _Extra) ->
 %% <em>State</em> accordingly.
 %% @end
 %%--------------------------------------------------------------------
--spec handle_special_packet(ealt_messages:message(), #state{}) ->
-                                   #state{}.
-handle_special_packet({event, Id, Session}, State) ->
+-spec handle_message(ealt_messages:message(), #state{}) -> #state{}.
+handle_message({event, Id, Session}, State) ->
     Cookie = ealt_auth:cookie(),
     Key = key(Id, Cookie),
     State#state{ key = Key, mask = ?INITIAL_MASK, session = Session };
 
-handle_special_packet({keyframe, Next_Id}, State = #state{ buffer = Buffer,
-                                                           keyframe_id = Id }) ->
+handle_message({keyframe, Next_Id}, State = #state{ buffer = Buffer,
+                                                    keyframe_id = Id }) ->
     %% TODO: Reset mask on new keyframe?
     case Id of
         undefined ->
@@ -158,12 +157,12 @@ handle_special_packet({keyframe, Next_Id}, State = #state{ buffer = Buffer,
             State#state{ keyframe_id = Next_Id }
     end;
 
-handle_special_packet({refresh_time, Time}, State) ->
+handle_message({refresh_time, Time}, State) ->
     Next_Refresh_Time =
         bounded(Time * 1000, ?MIN_REFRESH_TIME, ?MAX_REFRESH_TIME),
     State#state{ refresh_time = Next_Refresh_Time };
 
-handle_special_packet(_Term, State) ->
+handle_message(_Message, State) ->
     State.
 
 %%--------------------------------------------------------------------
@@ -246,9 +245,8 @@ read_packets(State = #state{ buffer = Buffer,
                     ealt_events:message_decoded(Message)
             end,
             Next_State =
-                handle_special_packet(Message,
-                                      State#state{ buffer = Next_Buffer,
-                                                   mask = Next_Mask }),
+                handle_message(Message, State#state{ buffer = Next_Buffer,
+                                                     mask = Next_Mask }),
             read_packets(Next_State);
         {more, _Length} ->
             State
