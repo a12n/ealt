@@ -234,10 +234,11 @@ read_packets(State = #state{ buffer = Buffer,
             {Packet, Next_Mask} =
                 ealt_packets:descramble_packet(Scrambled_Packet, Key,
                                                Mask),
+            io:format("Scrambled packet ~p~nPacket ~p~n",
+                      [Scrambled_Packet, Packet]),
             Message =
                 ealt_messages:packet_to_message(Session, Packet),
-            io:format("Scrambled packet ~p~nPacket ~p~nMessage ~p~n~n",
-                      [Scrambled_Packet, Packet, Message]),
+            io:format("Message ~p~n~n", [Message]),
             case Message of
                 undefined ->
                     ok;
