@@ -104,6 +104,7 @@ handle_info({tcp_error, Reason}, State) ->
     {stop, tcp_error, State};
 
 handle_info(timeout, State = #state{ refresh_time = Timeout, socket = Socket }) ->
+    io:format("Sending ping~n"),
     ok = gen_tcp:send(Socket, ?PING_PACKET),
     {noreply, State, Timeout}.
 
@@ -147,14 +148,15 @@ handle_message({event, Id, Session}, State) ->
 
 handle_message({keyframe, Next_Id}, State = #state{ buffer = Buffer,
                                                     keyframe_id = Id }) ->
-    %% TODO: Reset mask on new keyframe?
     case Id of
         undefined ->
             Keyframe_Bytes = keyframe(Next_Id),
             State#state{ buffer = <<Keyframe_Bytes/bytes, Buffer/bytes>>,
-                         keyframe_id = Next_Id };
+                         keyframe_id = Next_Id,
+                         mask = ?INITIAL_MASK };
         _Other ->
-            State#state{ keyframe_id = Next_Id }
+            State#state{ keyframe_id = Next_Id,
+                         mask = ?INITIAL_MASK }
     end;
 
 handle_message({refresh_time, Time}, State) ->
