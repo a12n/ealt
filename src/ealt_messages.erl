@@ -394,7 +394,11 @@ binary_to_lap_time(<<S:2/bytes, $., Z:1/bytes>>) ->
 
 binary_to_lap_time(<<S:1/bytes, $., Z:1/bytes>>) ->
     %% S.Z format
-    {0, binary_to_integer(S), binary_to_integer(Z) * 100}.
+    {0, binary_to_integer(S), binary_to_integer(Z) * 100};
+
+binary_to_lap_time(<<S:1/bytes, $., Z:3/bytes>>) ->
+    %% S.ZZZ format
+    {0, binary_to_integer(S), binary_to_integer(Z)}.
 
 %%--------------------------------------------------------------------
 %% @private
