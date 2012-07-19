@@ -52,7 +52,7 @@
         {position, car(), pos_integer()} |
         {number, car(), pos_integer()} |
         {driver, car(), binary()} |
-        %% {position_update, car(), pos_integer()} |
+        {position_update, car(), pos_integer()} |
         {position_history, car(), [pos_integer()]}.
 
 -type message() :: car_message() | system_message().
@@ -207,8 +207,8 @@ to_car_message(_Session, Car, ?DRIVER_PACKET, Payload) ->
 
 %% Other
 to_car_message(_Session, Car, ?POSITION_UPDATE_PACKET, Payload) ->
-    %% {position_update, Car, binary_to_integer(Payload)};
-    {position, Car, binary_to_integer(Payload)};
+    {position_update, Car, binary_to_integer(Payload)};
+    %% {position, Car, binary_to_integer(Payload)};
 
 to_car_message(_Session, Car, ?POSITION_HISTORY_PACKET, Payload) ->
     {position_history, Car, binary_to_list(Payload)};
@@ -234,7 +234,9 @@ to_system_message(?EVENT_PACKET, Extra, Payload) ->
             ?QUALIFYING_EVENT ->
                 qualifying;
             ?RACE_EVENT ->
-                race
+                race;
+            _Other ->
+                undefined
         end,
     <<_Unknown, Id/bytes>> = Payload,
     {event, Id, Session};
@@ -398,7 +400,12 @@ binary_to_lap_time(<<S:1/bytes, $., Z:1/bytes>>) ->
 
 binary_to_lap_time(<<S:1/bytes, $., Z:3/bytes>>) ->
     %% S.ZZZ format
-    {0, binary_to_integer(S), binary_to_integer(Z)}.
+    {0, binary_to_integer(S), binary_to_integer(Z)};
+
+binary_to_lap_time(Other) ->
+    error_logger:error_msg("Unknown lap time representation ~p~n",
+                           [Other]),
+    undefined.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -431,4 +438,9 @@ binary_to_time(<<M:2/bytes, $:, S:2/bytes>>) ->
 
 binary_to_time(<<M:1/bytes, $:, S:2/bytes>>) ->
     %% M:SS format
-    {0, binary_to_integer(M), binary_to_integer(S)}.
+    {0, binary_to_integer(M), binary_to_integer(S)};
+
+binary_to_time(Other) ->
+    error_logger:error_msg("Unknown time representation ~p~n",
+                           [Other]),
+    undefined.
