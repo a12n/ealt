@@ -5,7 +5,8 @@
 %%% authentication cookie.
 %%% @end
 %%% @todo Add docs and specs.
-%%% @todo Renew cookie after _Max_Age.
+%%% @todo Renew cookie after _Max_Age. _Max_Age is gregorian seconds
+%%% of expiration date.
 %%%-------------------------------------------------------------------
 -module(ealt_auth).
 
