@@ -53,7 +53,11 @@
         {number, car(), pos_integer()} |
         {driver, car(), binary()} |
         {position_update, car(), pos_integer()} |
-        {position_history, car(), [pos_integer()]}.
+        {position_history, car(), [pos_integer()]} |
+        {in_pit, car()} |
+        {out, car()} |
+        {retired, car()} |
+        {stop, car()}.
 
 -type message() :: car_message() | system_message().
 
