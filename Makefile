@@ -11,7 +11,7 @@ app:
 	$(REBAR) compile skip_deps=true
 
 arch:
-	hg arch ealt-`cat vsn`.tar.gz -X ".hg*"
+	hg arch ealt-`date +%Y%m%d`.tar.gz -X ".hg*"
 
 clean:
 	$(REBAR) clean
