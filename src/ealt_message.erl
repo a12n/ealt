@@ -4,7 +4,7 @@
 %%% Decoded packet to message translation module.
 %%% @end
 %%%-------------------------------------------------------------------
--module(ealt_messages).
+-module(ealt_message).
 
 %% Types
 -export_type([car/0, gap/0, lap_sector/0, lap_time/0,
@@ -12,7 +12,7 @@
 -export_type([car_message/0, message/0, system_message/0]).
 
 %% API
--export([packet_to_message/2]).
+-export([of_packet/2]).
 
 -import(ealt_utils, [binary_to_integer/1, binary_to_number/1]).
 
@@ -95,8 +95,8 @@
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec packet_to_message(session(), ealt_packets:packet()) -> message().
-packet_to_message(Session, {Car, Type, Extra, {plain, Payload}}) ->
+-spec of_packet(session(), ealt_packets:packet()) -> message().
+of_packet(Session, {Car, Type, Extra, {plain, Payload}}) ->
     case Car of
         0 ->
             to_system_message(Type, Extra, Payload);

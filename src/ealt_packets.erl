@@ -19,7 +19,7 @@
 %%% Types
 %%%===================================================================
 
--type packet() :: {ealt_messages:car(), integer(), integer(), payload()}.
+-type packet() :: {ealt_message:car(), integer(), integer(), payload()}.
 
 -type payload() :: {plain | scrambled, binary()}.
 
@@ -94,7 +94,7 @@ descramble_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec payload_kind(ealt_messages:car(), integer()) ->
+-spec payload_kind(ealt_message:car(), integer()) ->
                           {plain | scrambled, long | short | zero}.
 payload_kind(0, ?EVENT_PACKET) ->
     {plain, short};
@@ -147,7 +147,7 @@ payload_kind(Car, Type) when Car > 0, Type >= 1, Type =< 13 ->
 %% packets.
 %% @end
 %%--------------------------------------------------------------------
--spec read_packet(ealt_messages:car(), integer(), integer(), binary()) ->
+-spec read_packet(ealt_message:car(), integer(), integer(), binary()) ->
                          {ok, packet(), binary()} |
                          {more, integer() | undefined}.
 read_packet(Car = 0, Type = ?TIMESTAMP_PACKET, Extra, Bytes) ->

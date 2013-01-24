@@ -49,7 +49,7 @@ delete_handler(Handler, Args) ->
 %% Notify packet handlers about extracted packet.
 %% @end
 %%--------------------------------------------------------------------
--spec message_decoded(ealt_messages:message()) -> ok.
+-spec message_decoded(ealt_message:message()) -> ok.
 message_decoded(Message) ->
     gen_event:notify(?MODULE, {message_decoded, Message}).
 

@@ -140,7 +140,7 @@ code_change(_Old_Vsn, State, _Extra) ->
 %% <em>State</em> accordingly.
 %% @end
 %%--------------------------------------------------------------------
--spec handle_message(ealt_messages:message(), #state{}) -> #state{}.
+-spec handle_message(ealt_message:message(), #state{}) -> #state{}.
 handle_message({event, Id, Session}, State) ->
     Cookie = ealt_auth:cookie(),
     Key = key(Id, Cookie),
@@ -238,8 +238,7 @@ read_packets(State = #state{ buffer = Buffer,
                                                Mask),
             io:format("Scrambled packet ~p~nPacket ~p~n",
                       [Scrambled_Packet, Packet]),
-            Message =
-                ealt_messages:packet_to_message(Session, Packet),
+            Message = ealt_message:of_packet(Session, Packet),
             io:format("Message ~p~n~n", [Message]),
             case Message of
                 undefined ->
