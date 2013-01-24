@@ -47,7 +47,7 @@ create_pg() ->
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec dispatch(iodata()) -> ok.
+-spec dispatch(binary()) -> ok.
 dispatch(Message) ->
     pg:send(?PG, Message).
 
