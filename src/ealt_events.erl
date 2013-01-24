@@ -29,7 +29,7 @@ add_handler(Handler, Args) ->
 %% Notify packet handlers about connected client.
 %% @end
 %%--------------------------------------------------------------------
--spec client_connected(fun()) -> ok.
+-spec client_connected(ealt_websocket:callback()) -> ok.
 client_connected(Client) ->
     gen_event:notify(?MODULE, {client_connected, Client}).
 
