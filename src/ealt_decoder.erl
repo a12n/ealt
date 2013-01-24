@@ -231,11 +231,10 @@ read_packets(State = #state{ buffer = Buffer,
                              key = Key,
                              mask = Mask,
                              session = Session }) ->
-    case ealt_packets:read_packet(Buffer) of
+    case ealt_packet:read(Buffer) of
         {ok, Scrambled_Packet, Next_Buffer} ->
             {Packet, Next_Mask} =
-                ealt_packets:descramble_packet(Scrambled_Packet, Key,
-                                               Mask),
+                ealt_packet:descramble(Scrambled_Packet, Key, Mask),
             io:format("Scrambled packet ~p~nPacket ~p~n",
                       [Scrambled_Packet, Packet]),
             Message = ealt_message:of_packet(Session, Packet),

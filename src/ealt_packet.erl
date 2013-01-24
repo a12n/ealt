@@ -5,13 +5,13 @@
 %%% TODO
 %%% @end
 %%%-------------------------------------------------------------------
--module(ealt_packets).
+-module(ealt_packet).
 
 %% Types
 -export_type([packet/0, payload/0]).
 
 %% API
--export([descramble_packet/3, read_packet/1]).
+-export([descramble/3, read/1]).
 
 -include("ealt.hrl").
 
@@ -32,13 +32,12 @@
 %% Decrypt scrambled <em>Packet</em>.
 %% @end
 %%--------------------------------------------------------------------
--spec descramble_packet(packet(), integer(), integer()) ->
-                               {packet(), integer()}.
-descramble_packet({Car, Type, Extra, {scrambled, Scrambled}}, Key, Mask) ->
+-spec descramble(packet(), integer(), integer()) -> {packet(), integer()}.
+descramble({Car, Type, Extra, {scrambled, Scrambled}}, Key, Mask) ->
     {Plain, Next_Mask} = descramble_payload(Scrambled, Key, Mask),
     {{Car, Type, Extra, {plain, Plain}}, Next_Mask};
 
-descramble_packet({Car, Type, Extra, {plain, Plain}}, _Key, Mask) ->
+descramble({Car, Type, Extra, {plain, Plain}}, _Key, Mask) ->
     {{Car, Type, Extra, {plain, Plain}}, Mask}.
 
 %%--------------------------------------------------------------------
@@ -46,13 +45,12 @@ descramble_packet({Car, Type, Extra, {plain, Plain}}, _Key, Mask) ->
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec read_packet(binary()) -> {ok, packet(), binary()} |
-                               {more, integer() | undefined}.
-read_packet(<<Type_1:3, Car:5, Extra:7, Type_2:1, Payload/bytes>>) ->
+-spec read(binary()) -> {ok, packet(), binary()} | {more, integer() | undefined}.
+read(<<Type_1:3, Car:5, Extra:7, Type_2:1, Payload/bytes>>) ->
     Type = Type_1 bor (Type_2 bsl 3),
     read_packet(Car, Type, Extra, Payload);
 
-read_packet(_Bytes) ->
+read(_Bytes) ->
     {more, undefined}.
 
 %%%===================================================================

@@ -95,7 +95,7 @@
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec of_packet(session(), ealt_packets:packet()) -> message().
+-spec of_packet(session(), ealt_packet:packet()) -> message().
 of_packet(Session, {Car, Type, Extra, {plain, Payload}}) ->
     case Car of
         0 ->
