@@ -131,7 +131,7 @@ websocket_terminate(_Reason, _Req, _State) ->
 %% current state of the session.
 %% @end
 %%--------------------------------------------------------------------
--spec make_callback() -> fun().
+-spec make_callback() -> fun((binary()) -> ok).
 make_callback() ->
     Self = self(),
     fun(Message) ->
