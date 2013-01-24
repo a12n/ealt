@@ -42,13 +42,13 @@
 
 -type car_message() ::
         {best_time, car(), lap_time()} |
-        {period_time, qualifying_period(), car(), lap_time()} |
+        {period_time, car(), qualifying_period(), lap_time()} |
         {interval, car(), gap()} |
         {lap, car(), pos_integer()} |
         {lap_time, car(), lap_time()} |
         {n_pits, car(), non_neg_integer()} |
         {gap, car(), gap()} |
-        {sector_time, lap_sector(), car(), lap_time()} |
+        {sector_time, car(), lap_sector(), lap_time()} |
         {position, car(), pos_integer()} |
         {number, car(), pos_integer()} |
         {driver, car(), binary()} |
@@ -118,13 +118,13 @@ to_car_message(practice, Car, ?PRACTICE_BEST_TIME_PACKET, Payload) ->
 
 %% Qualifying
 to_car_message(qualifying, Car, ?QUALIFYING_PERIOD_1_TIME_PACKET, Payload) ->
-    {period_time, 1, Car, binary_to_lap_time(Payload)};
+    {period_time, Car, 1, binary_to_lap_time(Payload)};
 
 to_car_message(qualifying, Car, ?QUALIFYING_PERIOD_2_TIME_PACKET, Payload) ->
-    {period_time, 2, Car, binary_to_lap_time(Payload)};
+    {period_time, Car, 2, binary_to_lap_time(Payload)};
 
 to_car_message(qualifying, Car, ?QUALIFYING_PERIOD_3_TIME_PACKET, Payload) ->
-    {period_time, 3, Car, binary_to_lap_time(Payload)};
+    {period_time, Car, 3, binary_to_lap_time(Payload)};
 
 %% Race
 to_car_message(race, Car, ?RACE_INTERVAL_PACKET, Payload) ->
@@ -181,19 +181,19 @@ to_car_message(Session, Car, Type, Payload)
   when ((Session =:= practice) and (Type =:= ?PRACTICE_SECTOR_1_TIME_PACKET)) or
        ((Session =:= qualifying) and (Type =:= ?QUALIFYING_SECTOR_1_TIME_PACKET)) or
        ((Session =:= race) and (Type =:= ?RACE_SECTOR_1_TIME_PACKET)) ->
-    {sector_time, 1, Car, binary_to_lap_time(Payload)};
+    {sector_time, Car, 1, binary_to_lap_time(Payload)};
 
 to_car_message(Session, Car, Type, Payload)
   when ((Session =:= practice) and (Type =:= ?PRACTICE_SECTOR_2_TIME_PACKET)) or
        ((Session =:= qualifying) and (Type =:= ?QUALIFYING_SECTOR_2_TIME_PACKET)) or
        ((Session =:= race) and (Type =:= ?RACE_SECTOR_2_TIME_PACKET)) ->
-    {sector_time, 2, Car, binary_to_lap_time(Payload)};
+    {sector_time, Car, 2, binary_to_lap_time(Payload)};
 
 to_car_message(Session, Car, Type, Payload)
   when ((Session =:= practice) and (Type =:= ?PRACTICE_SECTOR_3_TIME_PACKET)) or
        ((Session =:= qualifying) and (Type =:= ?QUALIFYING_SECTOR_3_TIME_PACKET)) or
        ((Session =:= race) and (Type =:= ?RACE_SECTOR_3_TIME_PACKET)) ->
-    {sector_time, 3, Car, binary_to_lap_time(Payload)};
+    {sector_time, Car, 3, binary_to_lap_time(Payload)};
 
 %% Practice, qualifying, race
 to_car_message(_Session, Car, ?POSITION_PACKET, Payload) ->
