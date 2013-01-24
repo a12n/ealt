@@ -10,6 +10,9 @@
 -behaviour(cowboy_http_handler).
 -behaviour(cowboy_http_websocket_handler).
 
+%% Types
+-export_type([callback/0]).
+
 %% API
 -export([create_pg/0, dispatch/1]).
 
@@ -21,6 +24,12 @@
          websocket_terminate/3]).
 
 -define(PG, ealt_websocket_pg).
+
+%%%===================================================================
+%%% Types
+%%%===================================================================
+
+-type callback() :: fun((binary()) -> ok).
 
 %%%===================================================================
 %%% API
@@ -131,7 +140,7 @@ websocket_terminate(_Reason, _Req, _State) ->
 %% current state of the session.
 %% @end
 %%--------------------------------------------------------------------
--spec make_callback() -> fun((binary()) -> ok).
+-spec make_callback() -> callback().
 make_callback() ->
     Self = self(),
     fun(Message) ->
