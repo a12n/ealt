@@ -209,7 +209,7 @@ format_message(Message) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec message_properties(ealt_message:message()) ->
-                                {term() | undefined, [{atom(), term()}]}.
+                                {term() | undefined, [{atom(), term()}, ...]}.
 
 %% Modifying state system messages
 message_properties({Type = air_temperature, Temp}) ->
@@ -333,7 +333,7 @@ message_properties({lap_time, Car, Time}) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec lap_time_properties(ealt_message:lap_time()) ->
-                                 [{atom(), term()}].
+                                 [{atom(), term()}, ...].
 
 lap_time_properties({M, S, L}) ->
     [ {min, M},
@@ -346,7 +346,7 @@ lap_time_properties({M, S, L}) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec gap_properties(ealt_message:gap()) ->
-                            [{atom(), term()}].
+                            [{atom(), term()}, ...].
 
 gap_properties({laps, N}) ->
     [ {laps, N} ];

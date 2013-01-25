@@ -20,7 +20,7 @@
 %% Adds packet handler to the event manager.
 %% @end
 %%--------------------------------------------------------------------
--spec add_handler(atom(), term()) -> ok | {'EXIT', term()} | term().
+-spec add_handler(module(), term()) -> ok | {'EXIT', term()} | term().
 add_handler(Handler, Args) ->
     gen_event:add_handler(?MODULE, Handler, Args).
 
@@ -38,7 +38,7 @@ client_connected(Client) ->
 %% Deletes packet handler from the event manager.
 %% @end
 %%--------------------------------------------------------------------
--spec delete_handler(atom(), term()) ->
+-spec delete_handler(module(), term()) ->
                             term() | {error, module_not_found} |
                             {'EXIT', term()}.
 delete_handler(Handler, Args) ->
