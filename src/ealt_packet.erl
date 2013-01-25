@@ -11,7 +11,7 @@
 -export_type([packet/0, payload/0]).
 
 %% API
--export([descramble/3, read/1]).
+-export([decrypt/3, read/1]).
 
 -include("ealt.hrl").
 
@@ -21,7 +21,7 @@
 
 -type packet() :: {ealt_message:car(), integer(), integer(), payload()}.
 
--type payload() :: {plain | scrambled, binary()}.
+-type payload() :: {cipher | plain, binary()}.
 
 %%%===================================================================
 %%% API
@@ -29,15 +29,14 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Decrypt scrambled <em>Packet</em>.
+%% Decrypt <em>Packet</em>.
 %% @end
 %%--------------------------------------------------------------------
--spec descramble(packet(), integer(), integer()) -> {packet(), integer()}.
-descramble({Car, Type, Extra, {scrambled, Scrambled}}, Key, Mask) ->
-    {Plain, Next_Mask} = descramble_payload(Scrambled, Key, Mask),
+-spec decrypt(packet(), integer(), integer()) -> {packet(), integer()}.
+decrypt({Car, Type, Extra, {cipher, Cipher}}, Key, Mask) ->
+    {Plain, Next_Mask} = decrypt_payload(Cipher, Key, Mask),
     {{Car, Type, Extra, {plain, Plain}}, Next_Mask};
-
-descramble({Car, Type, Extra, {plain, Plain}}, _Key, Mask) ->
+decrypt({Car, Type, Extra, {plain, Plain}}, _Key, Mask) ->
     {{Car, Type, Extra, {plain, Plain}}, Mask}.
 
 %%--------------------------------------------------------------------
@@ -60,13 +59,13 @@ read(_Bytes) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Decrypt scrambled payload <em>Bytes</em>.
+%% Decrypt payload <em>Bytes</em>.
 %% @end
 %%--------------------------------------------------------------------
--spec descramble_payload(binary(), integer(), integer()) ->
-                                {binary(), integer()}.
-descramble_payload(Bytes, Key, Mask) ->
-    descramble_payload(<<>>, Bytes, Key, Mask).
+-spec decrypt_payload(binary(), integer(), integer()) ->
+                             {binary(), integer()}.
+decrypt_payload(Bytes, Key, Mask) ->
+    decrypt_payload(<<>>, Bytes, Key, Mask).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -75,16 +74,16 @@ descramble_payload(Bytes, Key, Mask) ->
 %% <em>Decr</em> binary.
 %% @end
 %%--------------------------------------------------------------------
--spec descramble_payload(binary(), binary(), integer(), integer()) ->
-                                {binary(), integer()}.
-descramble_payload(Decr, <<>>, _Key, Mask) ->
+-spec decrypt_payload(binary(), binary(), integer(), integer()) ->
+                             {binary(), integer()}.
+decrypt_payload(Decr, <<>>, _Key, Mask) ->
     {Decr, Mask};
 
-descramble_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
+decrypt_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
     Next_Mask = ((Mask bsr 1) bxor (Mask band 1) * Key) band 16#ffffffff,
     Byte = Encr_Byte bxor (Next_Mask band 16#ff),
     Next_Decr = <<Decr/bytes, Byte>>,
-    descramble_payload(Next_Decr, Next_Encr, Key, Next_Mask).
+    decrypt_payload(Next_Decr, Next_Encr, Key, Next_Mask).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -93,7 +92,7 @@ descramble_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec payload_kind(ealt_message:car(), integer()) ->
-                          {plain | scrambled, long | short | zero}.
+                          {cipher | plain, long | short | zero}.
 payload_kind(0, ?EVENT_PACKET) ->
     {plain, short};
 
@@ -104,25 +103,25 @@ payload_kind(0, ?MARKER_PACKET) ->
     {plain, zero};
 
 payload_kind(0, ?COMMENTARY_PACKET) ->
-    {scrambled, long};
+    {cipher, long};
 
 payload_kind(0, ?REFRESH_TIME_PACKET) ->
     {plain, zero};
 
 payload_kind(0, ?NOTICE_PACKET) ->
-    {scrambled, long};
+    {cipher, long};
 
 payload_kind(0, ?TIMESTAMP_PACKET) ->
-    {scrambled, long};
+    {cipher, long};
 
 payload_kind(0, ?WEATHER_PACKET) ->
-    {scrambled, short};
+    {cipher, short};
 
 payload_kind(0, ?SPEED_PACKET) ->
-    {scrambled, long};
+    {cipher, long};
 
 payload_kind(0, ?SESSION_STATUS_PACKET) ->
-    {scrambled, short};
+    {cipher, short};
 
 payload_kind(0, ?COPYRIGHT_PACKET) ->
     {plain, long};
@@ -131,10 +130,10 @@ payload_kind(Car, ?POSITION_UPDATE_PACKET) when Car > 0 ->
     {plain, zero};
 
 payload_kind(Car, ?POSITION_HISTORY_PACKET) when Car > 0 ->
-    {scrambled, long};
+    {cipher, long};
 
 payload_kind(Car, Type) when Car > 0, Type >= 1, Type =< 13 ->
-    {scrambled, short}.
+    {cipher, short}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -149,20 +148,20 @@ payload_kind(Car, Type) when Car > 0, Type >= 1, Type =< 13 ->
                          {ok, packet(), binary()} |
                          {more, integer() | undefined}.
 read_packet(Car = 0, Type = ?TIMESTAMP_PACKET, Extra, Bytes) ->
-    {Scrambled, Kind} = payload_kind(Car, Type),
+    {Cipher, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, 2, Bytes) of
         {ok, _Data, Payload, Other_Bytes} ->
-            Packet = {Car, Type, Extra, {Scrambled, Payload}},
+            Packet = {Car, Type, Extra, {Cipher, Payload}},
             {ok, Packet, Other_Bytes};
         Other ->
             Other
     end;
 
 read_packet(Car, Type, Extra, Bytes) ->
-    {Scrambled, Kind} = payload_kind(Car, Type),
+    {Cipher, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, Extra, Bytes) of
         {ok, Data, Payload, Other_Bytes} ->
-            Packet = {Car, Type, Data, {Scrambled, Payload}},
+            Packet = {Car, Type, Data, {Cipher, Payload}},
             {ok, Packet, Other_Bytes};
         Other ->
             Other
