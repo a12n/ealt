@@ -6,6 +6,8 @@
 %%%-------------------------------------------------------------------
 -module(ealt_translator).
 
+-include_lib("eunit/include/eunit.hrl").
+
 -behaviour(gen_event).
 
 %% API
@@ -79,6 +81,7 @@ handle_event({message_decoded, Message}, State) ->
         undefined ->
             ok;
         _Other ->
+            ?debugVal(Formatted),
             ealt_websocket:dispatch(Formatted)
     end,
     {ok, Next_State};
@@ -187,13 +190,18 @@ handle_message(Message, State = #state{ messages = Messages }) ->
                             {term() | undefined, binary()}.
 
 format_message(Message) ->
-    {M, S, U} = os:timestamp(),
-    Timestamp = (M * 1.0E+6) + S + (U * 1.0E-6),
-    Type = atom_to_binary(element(1, Message), latin1),
-    {Key, Fields} = message_properties(Message),
-    Formatted = jsx:to_json([ {type, Type},
-                              {timestamp, Timestamp} | Fields ]),
-    {Key, Formatted}.
+    try
+        {Key, Fields} = message_properties(Message),
+        {M, S, U} = os:timestamp(),
+        Timestamp = (M * 1.0E+6) + S + (U * 1.0E-6),
+        Type = atom_to_binary(element(1, Message), latin1),
+        Formatted = jsx:to_json([ {type, Type},
+                                  {timestamp, Timestamp} | Fields ]),
+        {Key, Formatted}
+    catch
+        error : _Error ->
+            {undefined, undefined}
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
