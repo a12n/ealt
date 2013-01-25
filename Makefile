@@ -4,7 +4,7 @@ REBAR ?= ./rebar
 
 DIALYZER_PLT = .dialyzer_plt
 
-.PHONY: all app arch clean dlyze doc plt test shell start
+.PHONY: all app arch clean distclean dlyze doc plt test shell start
 
 all:
 	$(REBAR) compile
@@ -17,6 +17,9 @@ arch:
 
 clean:
 	$(REBAR) clean
+
+distclean: clean
+	rm -f $(DIALYZER_PLT)
 
 dlyze:
 	$(DIALYZER) \
