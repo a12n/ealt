@@ -63,6 +63,7 @@ ensure_started(App) ->
 -spec start_deps() -> ok.
 start_deps() ->
     ensure_started(cowboy),
+    ensure_started(jsx),
     %% ensure_started(crypto),
     %% ensure_started(public_key),
     %% ensure_started(ssl),
@@ -80,5 +81,6 @@ stop_deps() ->
     %% application:stop(ssl),
     %% application:stop(public_key),
     %% application:stop(crypto),
+    application:stop(jsx),
     application:stop(cowboy),
     ok.
