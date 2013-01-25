@@ -141,7 +141,7 @@ code_change(_Old_Vsn, State, _Extra) ->
                             {binary() | undefined, #state{}}.
 
 %% Handle fastest lap system messages. Accumulate data and when all
-%% parts are available, inject fake fastest_lap car message.
+%% parts are available, inject fake fastest_lap message.
 handle_message({FL_Type, Datum}, State = #state{ fastest_lap = FL })
   when FL_Type =:= fastest_lap_car;
        FL_Type =:= fastest_lap_driver;
@@ -166,62 +166,13 @@ handle_message({FL_Type, Datum}, State = #state{ fastest_lap = FL })
     end;
 
 handle_message(Message, State = #state{ messages = Messages }) ->
-    {Formatted, Msg_Key} =
-        case element(1, Message) of
-            %% Modifying state system messages
-            SM_Type when SM_Type =:= air_temperature;
-                         SM_Type =:= atmospheric_pressure;
-                         SM_Type =:= copyright;
-                         SM_Type =:= event;
-                         SM_Type =:= relative_humidity;
-                         SM_Type =:= sector_speed;
-                         SM_Type =:= session_clock;
-                         SM_Type =:= session_status;
-                         SM_Type =:= speed_trap;
-                         SM_Type =:= track_temperature;
-                         SM_Type =:= wet_track;
-                         SM_Type =:= wind_direction;
-                         SM_Type =:= wind_speed;
-                         %%
-                         SM_Type =:= fastest_lap ->
-                {format_message(Message), SM_Type};
-            %% Non-modifying state system messages
-            SN_Type when SN_Type =:= commentary;
-                         SN_Type =:= notice ->
-                {format_message(Message), undefined};
-            %% Modifying state car messages
-            CM_Type when CM_Type =:= best_time;
-                         CM_Type =:= driver;
-                         CM_Type =:= gap;
-                         CM_Type =:= interval;
-                         CM_Type =:= lap;
-                         CM_Type =:= n_pits;
-                         CM_Type =:= number;
-                         CM_Type =:= period_time;
-                         CM_Type =:= position;
-                         CM_Type =:= position_history;
-                         CM_Type =:= position_update;
-                         CM_Type =:= sector_time;
-                         %%
-                         CM_Type =:= in_pit;
-                         CM_Type =:= out;
-                         CM_Type =:= retired;
-                         CM_Type =:= stop ->
-                Car = element(2, Message),
-                {format_message(Message), {CM_Type, Car}};
-            %% Non-modifying state car messages
-            CN_Type when CN_Type =:= lap_time ->
-                {format_message(Message), undefined};
-            %% Ignore other messages
-            _Other_Type ->
-                {undefined, undefined}
-        end,
+    {Key, Formatted} = format_message(Message),
     Next_Messages =
-        case Msg_Key of
+        case Key of
             undefined ->
                 Messages;
             _Other_Key ->
-                lists:keystore(Msg_Key, 1, Messages, {Msg_Key, Formatted})
+                lists:keystore(Key, 1, Messages, {Key, Formatted})
         end,
     Next_State =
         State#state{ messages = Next_Messages },
@@ -232,8 +183,165 @@ handle_message(Message, State = #state{ messages = Messages }) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec format_message(ealt_message:message()) -> binary().
+-spec format_message(ealt_message:message()) ->
+                            {term() | undefined, binary()}.
 
-format_message(_Any) ->
-    %% TODO
-    <<>>.
+format_message(Message) ->
+    {M, S, U} = os:timestamp(),
+    Timestamp = (M * 1.0E+6) + S + (U * 1.0E-6),
+    Type = atom_to_binary(element(1, Message), latin1),
+    {Key, Fields} = message_properties(Message),
+    Formatted = jsx:to_json([ {type, Type},
+                              {timestamp, Timestamp} | Fields ]),
+    {Key, Formatted}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec message_properties(ealt_message:message()) ->
+                                {term() | undefined, [{atom(), term()}]}.
+
+%% Modifying state system messages
+message_properties({Type = air_temperature, Temp}) ->
+    {Type, [ {temp, Temp} ]};
+
+message_properties({Type = atmospheric_pressure, Pressure}) ->
+    {Type, [ {pressure, Pressure} ]};
+
+message_properties({Type = copyright, Text}) ->
+    {Type, [ {text, Text} ]};
+
+message_properties({Type = event, Id, Session}) ->
+    {Type, [ {id, Id},
+             {session, atom_to_binary(Session, latin1)} ]};
+
+message_properties({Type = relative_humidity, Humidity}) ->
+    {Type, [ {humidity, Humidity} ]};
+
+message_properties({Type = sector_speed, Sector, Table}) ->
+    {Type, [ {sector, Sector},
+             {table, Table} ]};
+
+message_properties({Type = session_clock, Time}) ->
+    {Type, [ {time, [ {h, element(1, Time)},
+                      {min, element(2, Time)},
+                      {s, element(3, Time)} ]} ]};
+
+message_properties({Type = session_status, Status}) ->
+    {Type, [ {status, atom_to_binary(Status, latin1)} ]};
+
+message_properties({Type = speed_trap, Table}) ->
+    {Type, [ {table, Table} ]};
+
+message_properties({Type = track_temperature, Temp}) ->
+    {Type, [ {temp, Temp} ]};
+
+message_properties({Type = wet_track, Wet}) ->
+    {Type, [ {wet, Wet} ]};
+
+message_properties({Type = wind_direction, Direction}) ->
+    {Type, [ {direction, Direction} ]};
+
+message_properties({Type = wind_speed, Speed}) ->
+    {Type, [ {speed, Speed} ]};
+
+message_properties({Type = fastest_lap, Car, Driver, Lap, Time}) ->
+    {Type, [ {car, Car},
+             {driver, Driver},
+             {lap, Lap},
+             {time, lap_time_properties(Time)} ]};
+
+%% Non-modifying state system messages
+message_properties({commentary, Flush, Text}) ->
+    {undefined, [ {flush, Flush},
+                  {text, Text} ]};
+
+message_properties({notice, Text}) ->
+    {undefined, [ {text, Text} ]};
+
+%% Modifying state car messages
+message_properties({Type = best_time, Car, Time}) ->
+    {{Type, Car}, [ {car, Car},
+                    {time, lap_time_properties(Time)} ]};
+
+message_properties({Type = driver, Car, Name}) ->
+    {{Type, Car}, [ {car, Car},
+                    {name, Name} ]};
+
+message_properties({Type = gap, Car, Gap}) ->
+    {{Type, Car}, [ {car, Car},
+                    {gap, gap_properties(Gap)} ]};
+
+message_properties({Type = interval, Car, Interval}) ->
+    {{Type, Car}, [ {car, Car},
+                    {interval, gap_properties(Interval)} ]};
+
+message_properties({Type = lap, Car, Lap}) ->
+    {{Type, Car}, [ {car, Car},
+                    {lap, Lap} ]};
+
+message_properties({Type = n_pits, Car, N}) ->
+    {{Type, Car}, [ {car, Car},
+                    {n, N} ]};
+
+message_properties({Type = number, Car, Num}) ->
+    {{Type, Car}, [ {car, Car},
+                    {num, Num} ]};
+
+message_properties({Type = period_time, Car, Period, Time}) ->
+    {{Type, Car}, [ {car, Car},
+                    {period, Period},
+                    {time, lap_time_properties(Time)} ]};
+
+message_properties({Type, Car, Pos})
+  when Type =:= position;
+       Type =:= position_history;
+       Type =:= position_update ->
+    {{Type, Car}, [ {car, Car},
+                    {pos, Pos} ]};
+
+message_properties({Type = sector_time, Car, Sector, Time}) ->
+    {{Type, Car}, [ {car, Car},
+                    {sector, Sector},
+                    {time, lap_time_properties(Time)} ]};
+
+message_properties({Type, Car})
+  when Type =:= in_pit;
+       Type =:= out;
+       Type =:= retired;
+       Type =:= stop ->
+    {{Type, Car}, [ {car, Car} ]};
+
+%% Non-modifying state car messages
+message_properties({lap_time, Car, Time}) ->
+    {undefined, [ {car, Car},
+                  {time, lap_time_properties(Time)} ]}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec lap_time_properties(ealt_message:lap_time()) ->
+                                 [{atom(), term()}].
+
+lap_time_properties({M, S, L}) ->
+    [ {min, M},
+      {s, S},
+      {ms, L} ].
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec gap_properties(ealt_message:gap()) ->
+                            [{atom(), term()}].
+
+gap_properties({laps, N}) ->
+    [ {laps, N} ];
+
+gap_properties({time, T}) ->
+    [ {time, lap_time_properties(T)} ].
