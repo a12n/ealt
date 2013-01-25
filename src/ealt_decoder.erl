@@ -7,6 +7,8 @@
 %%%-------------------------------------------------------------------
 -module(ealt_decoder).
 
+-include_lib("eunit/include/eunit.hrl").
+
 -behaviour(gen_server).
 
 %% API
@@ -46,6 +48,7 @@
 %% @end
 %%--------------------------------------------------------------------
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
+
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -59,7 +62,6 @@ start_link() ->
 %% Initializes the server.
 %% @end
 %%--------------------------------------------------------------------
--spec init(term()) -> {ok, #state{}, integer()}.
 init(_Args) ->
     Options = [binary, {packet, 0}],
     {ok, Socket} = gen_tcp:connect(?LIVE_TIMING_HOST,
@@ -104,7 +106,6 @@ handle_info({tcp_error, Reason}, State) ->
     {stop, tcp_error, State};
 
 handle_info(timeout, State = #state{ refresh_time = Timeout, socket = Socket }) ->
-    io:format("Sending ping~n"),
     ok = gen_tcp:send(Socket, ?PING_PACKET),
     {noreply, State, Timeout}.
 
@@ -141,6 +142,7 @@ code_change(_Old_Vsn, State, _Extra) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec handle_message(ealt_message:message(), #state{}) -> #state{}.
+
 handle_message({event, Id, Session}, State) ->
     Cookie = ealt_auth:cookie(),
     Key = key(Id, Cookie),
@@ -175,6 +177,7 @@ handle_message(_Message, State) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec key(binary(), binary()) -> integer().
+
 key(Event_Id, Cookie) ->
     URL = io_lib:format("http://~s/reg/getkey/~s.asp?auth=~s",
                         [?LIVE_TIMING_HOST, Event_Id, Cookie]),
@@ -192,6 +195,7 @@ key(Event_Id, Cookie) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec keyframe(non_neg_integer()) -> binary().
+
 keyframe(Keyframe_Id) ->
     URL = keyframe_url(Keyframe_Id),
     Headers = [],
@@ -213,6 +217,7 @@ keyframe(Keyframe_Id) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec keyframe_url(non_neg_integer()) -> io_lib:chars().
+
 keyframe_url(0) ->
     io_lib:format("http://~s/keyframe.bin", [?LIVE_TIMING_HOST]);
 
@@ -227,18 +232,18 @@ keyframe_url(Keyframe_Id) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec read_packets(#state{}) -> #state{}.
+
 read_packets(State = #state{ buffer = Buffer,
                              key = Key,
                              mask = Mask,
                              session = Session }) ->
     case ealt_packet:read(Buffer) of
-        {ok, Scrambled_Packet, Next_Buffer} ->
-            {Packet, Next_Mask} =
-                ealt_packet:descramble(Scrambled_Packet, Key, Mask),
-            io:format("Scrambled packet ~p~nPacket ~p~n",
-                      [Scrambled_Packet, Packet]),
+        {ok, Encr_Packet, Next_Buffer} ->
+            {Packet, Next_Mask} = ealt_packet:decrypt(Encr_Packet, Key, Mask),
+            ?debugVal(Encr_Packet),
+            ?debugVal(Packet),
             Message = ealt_message:of_packet(Session, Packet),
-            io:format("Message ~p~n~n", [Message]),
+            ?debugVal(Message),
             case Message of
                 undefined ->
                     ok;
