@@ -33,21 +33,26 @@
 %% @end
 %%--------------------------------------------------------------------
 -spec decrypt(packet(), integer(), integer()) -> {packet(), integer()}.
+
 decrypt({Car, Type, Extra, {cipher, Cipher}}, Key, Mask) ->
     {Plain, Next_Mask} = decrypt_payload(Cipher, Key, Mask),
-    {{Car, Type, Extra, {plain, Plain}}, Next_Mask};
-decrypt({Car, Type, Extra, {plain, Plain}}, _Key, Mask) ->
-    {{Car, Type, Extra, {plain, Plain}}, Mask}.
+    Packet = {Car, Type, Extra, {plain, Plain}},
+    {Packet, Next_Mask};
+
+decrypt(Packet = {_Car, _Type, _Extra, {plain, _Plain}}, _Key, Mask) ->
+    {Packet, Mask}.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% TODO
 %% @end
 %%--------------------------------------------------------------------
--spec read(binary()) -> {ok, packet(), binary()} | {more, integer() | undefined}.
+-spec read(binary()) -> {ok, packet(), binary()} |
+                        {more, integer() | undefined}.
+
 read(<<Type_1:3, Car:5, Extra:7, Type_2:1, Payload/bytes>>) ->
     Type = Type_1 bor (Type_2 bsl 3),
-    read_packet(Car, Type, Extra, Payload);
+    read(Car, Type, Extra, Payload);
 
 read(_Bytes) ->
     {more, undefined}.
@@ -59,13 +64,15 @@ read(_Bytes) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Decrypt payload <em>Bytes</em>.
+%% Decrypt <em>Encr</em> bytes. Return decrypted binary and new
+%% decryption mask.
 %% @end
 %%--------------------------------------------------------------------
 -spec decrypt_payload(binary(), integer(), integer()) ->
                              {binary(), integer()}.
-decrypt_payload(Bytes, Key, Mask) ->
-    decrypt_payload(<<>>, Bytes, Key, Mask).
+
+decrypt_payload(Encr, Key, Mask) ->
+    decrypt_payload(_Decr = <<>>, Encr, Key, Mask).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -76,7 +83,8 @@ decrypt_payload(Bytes, Key, Mask) ->
 %%--------------------------------------------------------------------
 -spec decrypt_payload(binary(), binary(), integer(), integer()) ->
                              {binary(), integer()}.
-decrypt_payload(Decr, <<>>, _Key, Mask) ->
+
+decrypt_payload(Decr, _Encr = <<>>, _Key, Mask) ->
     {Decr, Mask};
 
 decrypt_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
@@ -93,6 +101,7 @@ decrypt_payload(Decr, <<Encr_Byte, Next_Encr/bytes>>, Key, Mask) ->
 %%--------------------------------------------------------------------
 -spec payload_kind(ealt_message:car(), integer()) ->
                           {cipher | plain, long | short | zero}.
+
 payload_kind(0, ?EVENT_PACKET) ->
     {plain, short};
 
@@ -144,10 +153,11 @@ payload_kind(Car, Type) when Car > 0, Type >= 1, Type =< 13 ->
 %% packets.
 %% @end
 %%--------------------------------------------------------------------
--spec read_packet(ealt_message:car(), integer(), integer(), binary()) ->
-                         {ok, packet(), binary()} |
-                         {more, integer() | undefined}.
-read_packet(Car = 0, Type = ?TIMESTAMP_PACKET, Extra, Bytes) ->
+-spec read(ealt_message:car(), integer(), integer(), binary()) ->
+                  {ok, packet(), binary()} |
+                  {more, integer() | undefined}.
+
+read(Car = 0, Type = ?TIMESTAMP_PACKET, Extra, Bytes) ->
     {Cipher, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, 2, Bytes) of
         {ok, _Data, Payload, Other_Bytes} ->
@@ -157,7 +167,7 @@ read_packet(Car = 0, Type = ?TIMESTAMP_PACKET, Extra, Bytes) ->
             Other
     end;
 
-read_packet(Car, Type, Extra, Bytes) ->
+read(Car, Type, Extra, Bytes) ->
     {Cipher, Kind} = payload_kind(Car, Type),
     case read_payload(Kind, Extra, Bytes) of
         {ok, Data, Payload, Other_Bytes} ->
@@ -189,9 +199,11 @@ read_packet(Car, Type, Extra, Bytes) ->
 -spec read_payload(long | short | zero, integer(), binary()) ->
                           {ok, integer() | undefined, binary(), binary()} |
                           {more, integer() | undefined}.
+
 read_payload(long, Extra, Bytes) ->
+    Length = Extra,
     case Bytes of
-        <<Payload:Extra/bytes, Other_Bytes/bytes>> ->
+        <<Payload:Length/bytes, Other_Bytes/bytes>> ->
             {ok, undefined, Payload, Other_Bytes};
         _Other ->
             {more, undefined}
