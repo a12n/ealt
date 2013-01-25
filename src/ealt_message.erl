@@ -54,6 +54,7 @@
         {driver, car(), binary()} |
         {position_update, car(), pos_integer()} |
         {position_history, car(), [pos_integer()]} |
+        %%
         {in_pit, car()} |
         {out, car()} |
         {retired, car()} |
@@ -84,7 +85,9 @@
         {fastest_lap_time, lap_time()} |
         {fastest_lap_lap, pos_integer()} |
         {session_status, session_status()} |
-        {copyright, binary()}.
+        {copyright, binary()} |
+        %%
+        {fastest_lap, car(), binary(), pos_integer(), lap_time()}.
 
 %%%===================================================================
 %%% API
